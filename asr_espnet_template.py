@@ -118,7 +118,7 @@ class ESPnetFeatureExtractor:
         speech = speech.unsqueeze(0)  # [1, time]
         speech_lengths = torch.LongTensor([speech.shape[1]])
         
-        # Extract features
+        # Extract features: feats contains [batch, time, features]
         feats, feat_lengths = self.frontend(speech, speech_lengths)
         
         # Apply SpecAugment during training
@@ -238,7 +238,7 @@ class ESPnetDataManager:
 class GMM(nn.Module):
     """Gaussian Mixture Model implementation in PyTorch"""
     
-    def __init__(self, n_components: int, n_features: int):
+    def __init__(self, n_components: int, n_features: int): 
         super().__init__()
         self.n_components = n_components
         self.n_features = n_features
