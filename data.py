@@ -7,23 +7,28 @@ from collections import defaultdict
 import soundfile as sf
 from pathlib import Path
 from espnet2.asr.frontend.default import DefaultFrontend
+from torch.nn.utils.rnn import pad_sequence
 
 
 class DataManager:
     def __init__(self, data_dir: str):
         self.data_dir = Path(data_dir)
 
-    def _gather_by_word(self, vocab: Dict[str, str] = None) -> defaultdict[str, List[str]]:
+    def gather_by_word(self, test: bool = False, test_indx: int = 10,
+                       vocab: Dict[str, str] = None) -> defaultdict[str, List[str]]:
         """Gather audio files by target word."""
         audio_files = defaultdict(list)
 
-        for file_name in os.listdir(data_dir):
-            word, *_ = file_name.split("_")
+        for file_name in os.listdir(self.data_dir):
+            word, _, indx = file_name.split("_")
+            indx, _ = indx.split(".")
 
-            if vocab:
-                word = vocab[word]
+            if (int(indx) < test_indx and test) or (int(indx) >= test_indx and not test):
 
-            audio_files[word].append(os.path.join(data_dir, file_name))
+                if vocab:
+                    word = vocab[word]
+
+                audio_files[word].append(os.path.join(self.data_dir, file_name))
 
         return audio_files
     
@@ -44,9 +49,9 @@ class DataManager:
 
         for word, files in audio_files.items():
             for file in files:
-                _, speaker, end = file.split("_")
+                word, speaker, end = file.split("_")
                 indx, _ = end.split(".")
-                utt_id = f"{speaker}-{indx}"
+                utt_id = f"{word}-{speaker}-{indx}"
 
                 wav_scp.append(f"{utt_id} {Path(file)}")
                 utt2spk.append(f"{utt_id} {speaker}")
@@ -72,23 +77,26 @@ class DataManager:
                 f.write(f"{spk} {' '.join(utts)}\n")
 
 
-    def load_data(self, wav_file: str = "data/wav.scp",
-                    text_file: str = "data/text.scp") -> defaultdict[str, List[Tuple[str, str]]]:
+    def load_data(self, split = "train", wav_scp_file: str = "wav.scp",
+                    text_scp_file: str = "text.scp") -> defaultdict[str, List[Tuple[str, str]]]:
         """Load data from scp files."""
+
+        wav_scp_path = os.path.join("data", split, wav_scp_file)
+        text_scp_ath = os.path.join("data", split, text_scp_file)
+
         wav_dict = {}
-        with open(wav_file, "r", encoding="utf-8") as f:
+        with open(wav_scp_path, "r", encoding="utf-8") as f:
             for line in f:
                 utt_id, wav_path = line.strip().split()
                 wav_dict[utt_id] = wav_path
 
         word_data = defaultdict(list)
-        with open(text_file, "r", encoding="utf-8") as f:
+        with open(text_scp_ath, "r", encoding="utf-8") as f:
             for line in f:
                 utt_id, target_word = line.strip().split()
                 word_data[target_word].append((utt_id, wav_dict[utt_id]))
 
         return word_data
-
 
 
 class FeatureExtractor:
@@ -139,7 +147,7 @@ class FeatureExtractor:
 
         # temporarily add batch dimension
         speech = speech.unsqueeze(0) # [batch, time]
-        speech_lengths = torch.LongTensor(speech.shape[1])
+        speech_lengths = torch.LongTensor([speech.shape[1]])
 
         # extract features
         feats, feat_lengths = self.frontend(speech, speech_lengths)
@@ -157,6 +165,24 @@ class FeatureExtractor:
 
         return feats
     
+    def target_tensors(self, target_dict: Dict[str, Dict[str, str]]) -> torch.Tensor:
+        tensors = dict()
+
+
+        for target, paths in target_dict.items():
+            print(f"target: {target}")
+            sequences = []
+
+            for _, path in paths:                
+                sequences.append(self.extract_features(path))
+
+            sequences = sorted(sequences, key=lambda x: x.shape[0])  
+            padded = pad_sequence(sequences, batch_first=True)
+            tensors[target] = padded
+            print(f"padded tensor shape: {padded.shape}")
+            
+        return tensors
+
 
     def save_config(self, config_path: str):
         # ToDO
@@ -177,8 +203,5 @@ if __name__ == "__main__":
     vocab_list = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
     vocab = { str(i) : vocab_list[i] for i in range(10) }
 
-    # info = data_manager._gather_by_word(vocab)
-    # data_manager.kaldi_prepare(info)
-
-    word_data = data_manager.load_data()
-    print(word_data)
+    word_data = data_manager.load_data(split="train")
+    tensors = feature_extractor.target_tensors(word_data)

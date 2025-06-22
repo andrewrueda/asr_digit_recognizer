@@ -1,3 +1,4 @@
 {"data_dir": "./free-spoken-digit-dataset/recordings/",
-"output_dir": "./data/"
+"output_dir": "./data/",
+"n_states": 3
 }
