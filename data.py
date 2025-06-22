@@ -132,6 +132,7 @@ class FeatureExtractor:
                          apply_specaug: bool = False):
         speech, sample_rate = sf.read(audio_path)
 
+        # downsample if necessary
         if sample_rate != self.fs:
             speech = librosa.resample(speech, orig_sr=sample_rate, target_sr=self.fs)
         speech = torch.FloatTensor(speech)
@@ -143,7 +144,7 @@ class FeatureExtractor:
         # extract features
         feats, feat_lengths = self.frontend(speech, speech_lengths)
 
-        # specaug
+        # apply specaug
         if self.specaug and apply_specaug:
             feats, feat_lengths = self.specaug(feats, feat_lengths)
 

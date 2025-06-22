@@ -417,6 +417,9 @@ class ESPnetHMMGMM:
     
     def _train_word_model(self, word: str, utterances: List[Tuple[str, str]]):
         """Train HMM/GMM model for a specific word"""
+
+        # NOTE: don't do this, do alignment
+        
         # Extract features from all utterances
         all_features = []
         
