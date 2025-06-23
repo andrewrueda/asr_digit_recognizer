@@ -1,4 +1,30 @@
-{"data_dir": "./free-spoken-digit-dataset/recordings/",
-"output_dir": "./data/",
-"n_states": 3
+{"data":    {"data_dir": "./free-spoken-digit-dataset/recordings/",
+             "output_dir": "./data/",
+             "log_dir": "./logs/",
+             "test_indx": 10, 
+             "vocab": {"0": "zero", "1": "one", "2": "two", "3": "three",
+                       "4": "four", "5": "five", "6": "six", "7": "seven",
+                       "8": "eight", "9": "nine"}},
+
+"features": {"fs": 16000,
+             "n_fft": 512,
+             "n_mels": 80,
+             "hop_length": 160,
+             "win_length": 400,
+             "fmin": 80,
+             "fmax": 7600,
+             "frontend_type": "default",
+             "use_specaug": false},
+
+"model":    {"n_states": 3,
+             "n_components": 3,
+             "device": "auto"},
+
+"training": {"seed": 0,
+             "epochs": 100}
+
 }
+
+
+
+

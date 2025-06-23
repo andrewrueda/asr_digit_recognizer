@@ -178,10 +178,14 @@ class FeatureExtractor:
             for _, path in paths:                
                 sequences.append(self.extract_features(path))
 
-            sequences = sorted(sequences, key=lambda x: x.shape[0])  
+            sequences = sorted(sequences, key=lambda x: x.shape[0]) 
             padded = pad_sequence(sequences, batch_first=True)
-            tensors[target] = padded
             print(f"padded tensor shape: {padded.shape}")
+
+            shuffled_indices = torch.randperm(len(padded))
+            padded_shuffled = padded[shuffled_indices]
+            tensors[target] = padded_shuffled
+
             
         return tensors
 
@@ -191,12 +195,11 @@ class FeatureExtractor:
         pass
 
 
-    
 if __name__ == "__main__":
     with open("configs/config.json", "r", encoding="utf-8") as config_file:
         configs = json.load(config_file)
 
-    data_dir = configs["data_dir"]
+    data_dir = configs["data"]["data_dir"]
 
     feature_extractor = FeatureExtractor()
     data_manager = DataManager(data_dir)

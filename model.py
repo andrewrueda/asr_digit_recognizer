@@ -38,8 +38,6 @@ class GMM(torch.nn.Module):
     def _e_step(self, observations):
         """Compute component responsibilities"""
         # create mask
-
-        print(f"foooo: {type(observations)}")
         mask = (observations != 0).any(dim=-1)
 
         # find log_probs and re-apply mask

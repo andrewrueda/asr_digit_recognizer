@@ -3,94 +3,170 @@ import torch.functional as F
 import json
 import os
 import argparse
+import inspect
+import random
+from typing import List, Dict, Tuple, Set, Union
 from data import DataManager, FeatureExtractor
 from model import HMM, HMMState, GMM
 import numpy as np
 
 
 def parse_args():
-    pass
-
-
-def setup_configs():
+    # Load configs as default
     with open("configs/config.json", "r", encoding="utf-8") as config_file:
         configs = json.load(config_file)
-        data_dir = configs["data_dir"]
-        return data_dir
+    parser = argparse.ArgumentParser(description='Training')
+
+    # parse data
+    data_configs = configs["data"]
+    parser.add_argument('--data_dir', type=str, default=data_configs['data_dir'])
+    parser.add_argument('--output_dir', type=str, default=data_configs['output_dir'])
+    parser.add_argument('--log_dir', type=str, default=data_configs['log_dir'])
+    parser.add_argument('--test_indx', type=int, default=data_configs['test_indx'])
+    parser.add_argument('--vocab', type=dict, default=data_configs['vocab'])
+
+    # parse audio features
+    features_configs = configs["features"]
+    parser.add_argument('--fs', type=int, default=features_configs['fs'])
+    parser.add_argument('--n_mels', type=int, default=features_configs['n_mels'])
+    parser.add_argument('--hop_length', type=int, default=features_configs['hop_length'])
+    parser.add_argument('--win_length', type=int, default=features_configs['win_length'])
+    parser.add_argument('--fmin', type=int, default=features_configs['fmin'])
+    parser.add_argument('--fmax', type=int, default=features_configs['fmax'])
+    parser.add_argument('--frontend_type', type=str, default=features_configs['frontend_type'])
+    parser.add_argument('--use_specaug', type=bool, default=features_configs['use_specaug'])
+
+    # parse model
+    model_configs = configs["model"]
+    parser.add_argument('--n_states', type=int, default=model_configs['n_states'])
+    parser.add_argument('--n_components', type=int, default=model_configs['n_components'])
+    parser.add_argument('--device', type=str, default=model_configs['device'])
+
+    # parse training
+    training_configs = configs["training"]
+    parser.add_argument('--seed', type=int, default=training_configs['seed'])
+    parser.add_argument('--epochs', type=int, default=training_configs['epochs'])
+
+    return parser.parse_args()
 
 
-def prepare_data(data_dir):
+def prepare_data(args) -> Tuple[torch.Tensor, torch.Tensor]:
     """Load and prepare data"""
-    feature_extractor = FeatureExtractor()
-    data_manager = DataManager(data_dir)
 
-    vocab_list = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
-    vocab = { str(i) : vocab_list[i] for i in range(10) }
+    # get only relevant kwargs for feature extractor
+    feature_params = inspect.signature(FeatureExtractor.__init__).parameters
+    feature_kwargs = {key: getattr(args, key) for key in feature_params
+                      if key != "self" and hasattr(args, key)}
+    
+    feature_extractor = FeatureExtractor(**feature_kwargs)
+    data_manager = DataManager(args.data_dir)
 
-    if not os.path.isdir("data"):
-        os.mkdir("data")
-        os.mkdir("data/train")
-        os.mkdir("data/test")
+    # gather and load data kaldi-style for train and test
+    train_files = data_manager.gather_by_word(test=False, test_indx=args.test_indx, vocab=args.vocab)
+    data_manager.kaldi_prepare(train_files, output_dir=os.path.join(args.output_dir, "train"))
 
-        train_files = data_manager.gather_by_word(test=False, vocab=vocab)
-        data_manager.kaldi_prepare(train_files, output_dir="data/train")
-
-        test_files = data_manager.gather_by_word(test=True, vocab=vocab)
-        data_manager.kaldi_prepare(test_files, output_dir="data/test")
-
+    test_files = data_manager.gather_by_word(test=True, test_indx=args.test_indx, vocab=args.vocab)
+    data_manager.kaldi_prepare(test_files, output_dir=os.path.join(args.output_dir, "test"))
 
     train_data = data_manager.load_data(split="train")
     test_data = data_manager.load_data(split="test")
 
+    # extract and load tensors
     print(f"Loading training tensors...")
     training_tensors = feature_extractor.target_tensors(train_data)
+    print(f"Loading test tensors...")
+    test_tensors = feature_extractor.target_tensors(test_data)
+
+    return training_tensors, test_tensors
 
 
-def load_model():
+def load_model(args) -> Dict[str, HMM]:
+    print(f"Loading model...")
     word_models = dict()
-    n_states = configs["n_states"]
 
-    for word in vocab_list:
-        states = [HMMState(id=i) for i in range(n_states)]
+    for digit in range(10):
+        states = [HMMState(id=i) for i in range(args.n_states)]
 
-        for i in range(n_states):
-            if i < n_states - 1:
+        for i in range(args.n_states):
+            if i < args.n_states - 1:
                 states[i].add_transition(i, np.log(0.5))      # self-loop
                 states[i].add_transition(i + 1, np.log(0.5))  # forward
             else:
                 states[i].add_transition(i, np.log(1.0))      # final state self-loop
         
-        word_models[word] = HMM(states, start_id=0)
+        word_models[args.vocab[str(digit)]] = HMM(states, start_id=0)
+
+    print(f"number of HMMs: {len(word_models)}")
+    return word_models
 
 
-def train_epoch():
+def forward_backward(args, model: HMM, observations: torch.Tensor, state_responsibilities: torch.Tensor):
+    """E step of Baum-Welch (Forward Backward Algorithm)"""
     pass
 
 
+
+
+
+def _uniform_segmentation(seq_len: int, n_states: int) -> List[int]:
+    assert(seq_len >= n_states)
+
+    part = seq_len // n_states
+    modulus = seq_len % n_states
+
+    weights = [part] * n_states
+    small = set([x for x in range(n_states)])
+
+    for _ in range(modulus):
+        extra = random.choice(list(small))
+        small.remove(extra)
+        weights[extra] += 1
+
+    return weights
+
+
 def main():
+    """Baum-Welch training for HMM-GMM."""
     args = parse_args()
+    training_tensors, test_tensors = prepare_data(args)
+    word_models = load_model(args)
+
+    # train each model for n_epochs
+    for target, tensor in training_tensors.items():
+        hmm = word_models[target]
+
+        # initialize state responsibilities
+        state_responsibilties = torch.ones(tensor.shape[0], tensor.shape[1], args.n_states) # (N, T, S)
+
+        # find observation lengths
+        mask = (tensor != 0).any(dim=-1) # (N, T)
+        observation_lengths = mask.sum(dim=1)
+
+        # initialize with uniform segmentation
+        for i in range(len(state_responsibilties)):
+            seq_len = observation_lengths[i].item()
+            weights = _uniform_segmentation(seq_len, args.n_states)
+
+            for j in range(args.n_states):
+                new_row = []
+                for k in range(len(weights)):
+                    z = (1 if j==k else 0)
+                    new_row.extend([z] * weights[k])
+
+                unused = [0] * (state_responsibilties.size(1) - seq_len)
+                new_row.extend(unused)
+
+                state_responsibilties[i, :, j] = torch.tensor(new_row)
+
+
+        for epoch in range(1, args.epochs):
+            # E step
+            forward_backward(args, hmm, tensor, state_responsibilties)
+
+            # M step
+            # update state_responsibilties
 
 
 
 if __name__ == "__main__":
     main()
-
-
-    # digit = word_models['zero']
-    # digit_tensors = training_tensors['zero']
-    # digit_tensor_T = len(digit_tensors[1])
-
-    # a = digit.states[0]
-    # b = digit.states[1]
-    # c = digit.states[2]
-
-    # gmm_a = a.emissions
-
-    # state_responsibilities = torch.randn(240, digit_tensor_T) ** 2
-    # state_responsibilities = state_responsibilities / state_responsibilities.sum(dim=1, keepdim=True)
-
-    # gmm_a.fit(digit_tensors, state_responsibilities)
-
-    # print(gmm_a.mixture_weights)
-    # print(gmm_a.means[0])
-    # print(gmm_a.log_vars[0])
