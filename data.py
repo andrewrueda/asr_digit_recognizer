@@ -11,6 +11,7 @@ from torch.nn.utils.rnn import pad_sequence
 
 
 class DataManager:
+    """Handles writing kaldi-like files and loading data."""
     def __init__(self, data_dir: str):
         self.data_dir = Path(data_dir)
 
@@ -49,7 +50,8 @@ class DataManager:
 
         for word, files in audio_files.items():
             for file in files:
-                word, speaker, end = file.split("_")
+                file_name = os.path.basename(file)
+                _, speaker, end = file_name.split("_")
                 indx, _ = end.split(".")
                 utt_id = f"{word}-{speaker}-{indx}"
 
@@ -82,7 +84,7 @@ class DataManager:
         """Load data from scp files."""
 
         wav_scp_path = os.path.join("data", split, wav_scp_file)
-        text_scp_ath = os.path.join("data", split, text_scp_file)
+        text_scp_path = os.path.join("data", split, text_scp_file)
 
         wav_dict = {}
         with open(wav_scp_path, "r", encoding="utf-8") as f:
@@ -91,7 +93,7 @@ class DataManager:
                 wav_dict[utt_id] = wav_path
 
         word_data = defaultdict(list)
-        with open(text_scp_ath, "r", encoding="utf-8") as f:
+        with open(text_scp_path, "r", encoding="utf-8") as f:
             for line in f:
                 utt_id, target_word = line.strip().split()
                 word_data[target_word].append((utt_id, wav_dict[utt_id]))
@@ -100,6 +102,7 @@ class DataManager:
 
 
 class FeatureExtractor:
+    """Handles feature extraction and loading data as tensors"""
     def __init__(self,
                  fs: int = 16000,
                  n_fft: int = 512, # num of samples in each window
@@ -165,9 +168,8 @@ class FeatureExtractor:
 
         return feats
     
-    def target_tensors(self, target_dict: Dict[str, Dict[str, str]]) -> torch.Tensor:
+    def target_tensors(self, target_dict: Dict[str, Dict[str, str]]) -> Dict[str, torch.Tensor]:
         tensors = dict()
-
 
         for target, paths in target_dict.items():
             print(f"target: {target}")
@@ -197,11 +199,18 @@ if __name__ == "__main__":
     data_dir = configs["data_dir"]
 
     feature_extractor = FeatureExtractor()
-
     data_manager = DataManager(data_dir)
 
     vocab_list = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
     vocab = { str(i) : vocab_list[i] for i in range(10) }
 
-    word_data = data_manager.load_data(split="train")
-    tensors = feature_extractor.target_tensors(word_data)
+    if not os.path.isdir("data"):
+        os.mkdir("data")
+        os.mkdir("data/train")
+        os.mkdir("data/test")
+
+        audio_files = data_manager.gather_by_word(test=False)
+        data_manager.kaldi_prepare(audio_files, output_dir="train")
+
+        word_data = data_manager.load_data(split="train")
+        tensors = feature_extractor.target_tensors(word_data)
