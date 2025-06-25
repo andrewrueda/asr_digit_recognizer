@@ -186,7 +186,6 @@ class FeatureExtractor:
             padded_shuffled = padded[shuffled_indices]
             tensors[target] = padded_shuffled
 
-            
         return tensors
 
 

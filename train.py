@@ -8,6 +8,7 @@ import random
 from typing import List, Dict, Tuple, Set, Union
 from data import DataManager, FeatureExtractor
 from model import HMM, HMMState, GMM
+from eval import HMMTest
 import numpy as np
 
 
@@ -125,12 +126,13 @@ def forward_backward(args, model: HMM, observations: torch.Tensor,
     alpha[:, 0, 1:] = float('-inf')
 
     for t in range(1, T):
+        # add last alpha, last emissions, and logsumexped transitions
         alpha_t = alpha[:, t-1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
-        emissions_t = lattice[:, t, :].detach().clone().unsqueeze(1) # (N, 1, S)
-        alpha_t = alpha_t + transitions + emissions_t # (N, S, S)
+        emissions_t = lattice[:, t-1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
 
-        alpha_t = torch.logsumexp(alpha_t, dim=1)
+        alpha_t = alpha_t + emissions_t + transitions # (N, S, S)
 
+        alpha_t = torch.logsumexp(alpha_t, dim=1) # (N, 1, S)
         alpha[:, t, :] = alpha_t
 
 
@@ -150,12 +152,14 @@ def forward_backward(args, model: HMM, observations: torch.Tensor,
     for i in range(N):
         for t in range(last_indices[i]-1, 0, -1):
 
-            beta_t = beta[i, t+1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
+            beta_t = beta[i, t+1, :].detach().clone().unsqueeze(-1) # (1, S, 1)
 
-            emissions_t = lattice[i, t, :].detach().clone().unsqueeze(1) # (N, 1, S)
-            beta_t = beta_t + transitions_back + emissions_t # (N, S, S)
+            emissions_t = lattice[i, t, :].detach().clone().unsqueeze(-1) # (1, S, 1)
+
+            beta_t = beta_t + transitions_back + emissions_t # (1, S, S)
             
-            beta_t = torch.logsumexp(beta_t, dim=1)
+            beta_t = torch.logsumexp(beta_t, dim=1) # (1, 1, S)
+
             beta[i, t, :] = beta_t
 
 
@@ -163,8 +167,12 @@ def forward_backward(args, model: HMM, observations: torch.Tensor,
     new_state_responsibilities = torch.full((N, T, S), float('-inf'))
     new_state_responsibilities[:, 0, :] = torch.tensor([1., 0., 0.]).log()
 
+    gamma = alpha[:, 1:, :] + beta[:, 1:, :] # (N, T-1, S)
 
-    gamma = alpha[:, :-1, :] + lattice[:, 1:, :] + beta[:, 1:, :]
+    # ???
+    log_likelihood = torch.logsumexp(alpha[N_range, last_indices, :], dim=-1)  # (N,) sum over final states
+    gamma -= log_likelihood.unsqueeze(-1).unsqueeze(-1)
+
     new_state_responsibilities[:, 1:, :] = gamma
 
 
@@ -206,9 +214,6 @@ def main():
     training_tensors, test_tensors = prepare_data(args)
     word_models = load_model(args)
 
-
-    final_log_probs = {} # temp
-
     # Training
     for target, tensor in training_tensors.items():
         print(f"training word {target}!")
@@ -249,7 +254,6 @@ def main():
             force_end = torch.tensor([0.] * (args.n_states-1) + [1.])
             state_responsibilties[i, seq_len-1, :] = force_end
 
-
         # take log
         state_responsibilties = state_responsibilties.log()
 
@@ -258,13 +262,11 @@ def main():
             state = hmm.states[i]
             state.gmm.fit(tensor, state_responsibilties[:,:, i])
 
-
         for epoch in range(1, args.epochs):
             # E step: update state responsibilities
             state_responsibilties = forward_backward(args, hmm, tensor, state_responsibilties, observation_lengths)
 
             # M step: update gaussians
-
             print(f"M step:")
             for i in range(hmm.n_states):
                 state = hmm.states[i]
@@ -272,23 +274,32 @@ def main():
                 state.gmm.fit(tensor, state_responsibilties[:,:, i])
 
 
-        # temporary eval
-        emissions = torch.zeros(tensor.size(0), tensor.size(1), args.n_states) # (N, T, S)
-        for i in range(args.n_states):
-            emissions[:, :, i] = hmm.states[i].gmm(tensor) # (N, T)
 
-        emissions = emissions + state_responsibilties
-        log_prob = torch.logsumexp(emissions, dim = (0, 1, 2)).item()
-        
-        final_log_probs[target] = log_prob
+    # temp eval
+    vocab_list = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+    results = {}
 
-    print(final_log_probs)
+    for target in vocab_list:
+
+        tester = HMMTest(word_models, test_tensor = test_tensors[target])
+
+        predictions = tester.batch_inference()
+
+        correct = 0
+        total = 0
+        for pred, value in predictions:
+            if pred == target:
+                correct += 1
+            total += 1
+
+        results[target] = correct/total
+
+    final = sum(results.values())
+    print(final / 10)
+    print()
+    print(results)
 
 
 
-
-
-
-        
 if __name__ == "__main__":
     main()

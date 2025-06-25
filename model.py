@@ -180,6 +180,25 @@ class HMM:
         self.transitions = torch.stack(transitions, dim=0)
 
 
+class HMM_GMM_ASR:
+    def __init__(self, id: str, path: str = "saved", models: Dict[str, HMM] = None):
+        self.id = id
+
+        if models:
+            self.models = models
+        else:
+            # load saved model
+            self.load_saved(id)
+
+
+    def load_saved(self, id: str):
+        self.models = {}
+
+    def save_model(self):
+        pass
+
+
+
 if __name__ == "__main__":
     gmm = GMM(n_components = 3, n_features = 80)
 
