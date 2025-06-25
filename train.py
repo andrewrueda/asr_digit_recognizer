@@ -40,6 +40,7 @@ def parse_args():
     model_configs = configs["model"]
     parser.add_argument('--n_states', type=int, default=model_configs['n_states'])
     parser.add_argument('--n_components', type=int, default=model_configs['n_components'])
+    parser.add_argument('--inner_epochs', type=int, default=model_configs['inner_epochs'])
     parser.add_argument('--device', type=str, default=model_configs['device'])
 
     # parse training
@@ -85,7 +86,8 @@ def load_model(args) -> Dict[str, HMM]:
     word_models = dict()
 
     for digit in range(10):
-        states = [HMMState(id=i) for i in range(args.n_states)]
+        states = [HMMState(id=i, n_components=args.n_components, n_features=args.n_mels, inner_epochs=args.inner_epochs)
+                  for i in range(args.n_states)]
 
         for i in range(args.n_states):
             if i < args.n_states - 1:
@@ -94,19 +96,92 @@ def load_model(args) -> Dict[str, HMM]:
             else:
                 states[i].add_transition(i, np.log(1.0))      # final state self-loop
         
-        word_models[args.vocab[str(digit)]] = HMM(states, start_id=0)
+        word_models[args.vocab[str(digit)]] = HMM(states)
 
     print(f"number of HMMs: {len(word_models)}")
     return word_models
 
 
-def forward_backward(args, model: HMM, observations: torch.Tensor, state_responsibilities: torch.Tensor):
+def forward_backward(args, model: HMM, observations: torch.Tensor,
+                     state_responsibilities: torch.Tensor, observation_lengths: torch.Tensor) -> torch.Tensor:
     """E step of Baum-Welch (Forward Backward Algorithm)"""
-    pass
+
+    N, T, F = observations.size()
+    S = state_responsibilities.size(2)
+    
+    # build lattice
+    lattice = torch.zeros(N, T, S)
+
+    for i in range(S):
+        emissions = model.states[i].emission_probs(observations) # (N, T)
+        lattice[:, :, i] = emissions
+
+    # get transitions
+    transitions = model.transitions.unsqueeze(0) # (1, S, S)
+
+    # fill alpha tensor
+    alpha = torch.zeros(N, T, S)
+    alpha[:, 0, 0] = lattice[:, 0, 0]
+    alpha[:, 0, 1:] = float('-inf')
+
+    for t in range(1, T):
+        alpha_t = alpha[:, t-1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
+        emissions_t = lattice[:, t, :].detach().clone().unsqueeze(1) # (N, 1, S)
+        alpha_t = alpha_t + transitions + emissions_t # (N, S, S)
+
+        alpha_t = torch.logsumexp(alpha_t, dim=1)
+
+        alpha[:, t, :] = alpha_t
 
 
+    # fill beta tensor
+    beta = torch.zeros(state_responsibilities.shape) # (N, T, S)
+
+    last_indices = torch.tensor(observation_lengths) - 1 # (N,)
+    N_range = torch.arange(N)
+
+    # set final state value from lattice, neg inf for other states
+    beta[N_range, last_indices, S-1] = lattice[N_range, last_indices, S-1]
+    beta[N_range, last_indices, :S-1] = float('-inf')
+
+    # transpose transitions
+    transitions_back = transitions.transpose(1, 2)
+
+    for i in range(N):
+        for t in range(last_indices[i]-1, 0, -1):
+
+            beta_t = beta[i, t+1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
+
+            emissions_t = lattice[i, t, :].detach().clone().unsqueeze(1) # (N, 1, S)
+            beta_t = beta_t + transitions_back + emissions_t # (N, S, S)
+            
+            beta_t = torch.logsumexp(beta_t, dim=1)
+            beta[i, t, :] = beta_t
 
 
+    # initialize new log state responsibilities
+    new_state_responsibilities = torch.full((N, T, S), float('-inf'))
+    new_state_responsibilities[:, 0, :] = torch.tensor([1., 0., 0.]).log()
+
+
+    gamma = alpha[:, :-1, :] + lattice[:, 1:, :] + beta[:, 1:, :]
+    new_state_responsibilities[:, 1:, :] = gamma
+
+
+    # use mask to convert to -inf when t >= seq_len
+    T_range = torch.arange(T).unsqueeze(0)  # (1, T)
+    mask = T_range >= last_indices.unsqueeze(1)  # (N, T)
+
+    new_state_responsibilities[mask.unsqueeze(-1).expand(-1, -1, S)] = float('-inf')
+    new_state_responsibilities = torch.softmax(new_state_responsibilities, dim=2)
+
+    new_state_responsibilities[mask.unsqueeze(-1).expand(-1, -1, S)] = 0.
+
+    # force align end
+    new_state_responsibilities[N_range, last_indices, S-1] = 1.
+
+    return new_state_responsibilities.log()
+    
 
 def _uniform_segmentation(seq_len: int, n_states: int) -> List[int]:
     assert(seq_len >= n_states)
@@ -131,8 +206,12 @@ def main():
     training_tensors, test_tensors = prepare_data(args)
     word_models = load_model(args)
 
-    # train each model for n_epochs
+
+    final_log_probs = {} # temp
+
+    # Training
     for target, tensor in training_tensors.items():
+        print(f"training word {target}!")
         hmm = word_models[target]
 
         # initialize state responsibilities
@@ -143,30 +222,73 @@ def main():
         observation_lengths = mask.sum(dim=1)
 
         # initialize with uniform segmentation
-        for i in range(len(state_responsibilties)):
+        for i in range(state_responsibilties.size(0)):
             seq_len = observation_lengths[i].item()
             weights = _uniform_segmentation(seq_len, args.n_states)
 
             for j in range(args.n_states):
                 new_row = []
                 for k in range(len(weights)):
-                    z = (1 if j==k else 0)
+
+                    z = ((1. - (0.05 * (args.n_states-1))) if j==k else 0.05)
+
+                    # z = (1. if j==k else 0.)
+
                     new_row.extend([z] * weights[k])
 
-                unused = [0] * (state_responsibilties.size(1) - seq_len)
+                unused = [0.] * (state_responsibilties.size(1) - seq_len)
                 new_row.extend(unused)
 
                 state_responsibilties[i, :, j] = torch.tensor(new_row)
 
 
+            # force align start and end
+            force_start = torch.tensor([1.] + [0.] * (args.n_states-1))
+            state_responsibilties[i, 0, :] = force_start
+
+            force_end = torch.tensor([0.] * (args.n_states-1) + [1.])
+            state_responsibilties[i, seq_len-1, :] = force_end
+
+
+        # take log
+        state_responsibilties = state_responsibilties.log()
+
+        # initial M step (fit gaussians)
+        for i in range(hmm.n_states):
+            state = hmm.states[i]
+            state.gmm.fit(tensor, state_responsibilties[:,:, i])
+
+
         for epoch in range(1, args.epochs):
-            # E step
-            forward_backward(args, hmm, tensor, state_responsibilties)
+            # E step: update state responsibilities
+            state_responsibilties = forward_backward(args, hmm, tensor, state_responsibilties, observation_lengths)
 
-            # M step
-            # update state_responsibilties
+            # M step: update gaussians
+
+            print(f"M step:")
+            for i in range(hmm.n_states):
+                state = hmm.states[i]
+                print(f"state {i}...")
+                state.gmm.fit(tensor, state_responsibilties[:,:, i])
+
+
+        # temporary eval
+        emissions = torch.zeros(tensor.size(0), tensor.size(1), args.n_states) # (N, T, S)
+        for i in range(args.n_states):
+            emissions[:, :, i] = hmm.states[i].gmm(tensor) # (N, T)
+
+        emissions = emissions + state_responsibilties
+        log_prob = torch.logsumexp(emissions, dim = (0, 1, 2)).item()
+        
+        final_log_probs[target] = log_prob
+
+    print(final_log_probs)
 
 
 
+
+
+
+        
 if __name__ == "__main__":
     main()
