@@ -1,0 +1,255 @@
+2025-06-26 17:42:38,323 - INFO - Loading training tensors...
+2025-06-26 17:42:38,323 - INFO - word: three
+2025-06-26 17:42:39,295 - INFO - padded tensor shape: [240, 93, 13]
+2025-06-26 17:42:39,295 - INFO - word: two
+2025-06-26 17:42:39,966 - INFO - padded tensor shape: [240, 122, 13]
+2025-06-26 17:42:39,967 - INFO - word: four
+2025-06-26 17:42:40,603 - INFO - padded tensor shape: [240, 112, 13]
+2025-06-26 17:42:40,603 - INFO - word: one
+2025-06-26 17:42:41,220 - INFO - padded tensor shape: [240, 101, 13]
+2025-06-26 17:42:41,220 - INFO - word: zero
+2025-06-26 17:42:41,963 - INFO - padded tensor shape: [240, 100, 13]
+2025-06-26 17:42:41,963 - INFO - word: five
+2025-06-26 17:42:42,630 - INFO - padded tensor shape: [240, 103, 13]
+2025-06-26 17:42:42,630 - INFO - word: nine
+2025-06-26 17:42:43,784 - INFO - padded tensor shape: [240, 229, 13]
+2025-06-26 17:42:43,785 - INFO - word: seven
+2025-06-26 17:42:44,602 - INFO - padded tensor shape: [240, 220, 13]
+2025-06-26 17:42:44,603 - INFO - word: six
+2025-06-26 17:42:45,233 - INFO - padded tensor shape: [240, 98, 13]
+2025-06-26 17:42:45,233 - INFO - word: eight
+2025-06-26 17:42:45,897 - INFO - padded tensor shape: [240, 101, 13]
+2025-06-26 17:42:45,897 - INFO - Loading test tensors...
+2025-06-26 17:42:45,897 - INFO - word: five
+2025-06-26 17:42:46,072 - INFO - padded tensor shape: [60, 115, 13]
+2025-06-26 17:42:46,072 - INFO - word: one
+2025-06-26 17:42:46,234 - INFO - padded tensor shape: [60, 81, 13]
+2025-06-26 17:42:46,234 - INFO - word: three
+2025-06-26 17:42:46,394 - INFO - padded tensor shape: [60, 132, 13]
+2025-06-26 17:42:46,394 - INFO - word: six
+2025-06-26 17:42:46,575 - INFO - padded tensor shape: [60, 88, 13]
+2025-06-26 17:42:46,575 - INFO - word: four
+2025-06-26 17:42:46,732 - INFO - padded tensor shape: [60, 65, 13]
+2025-06-26 17:42:46,732 - INFO - word: seven
+2025-06-26 17:42:46,908 - INFO - padded tensor shape: [60, 104, 13]
+2025-06-26 17:42:46,908 - INFO - word: zero
+2025-06-26 17:42:47,095 - INFO - padded tensor shape: [60, 117, 13]
+2025-06-26 17:42:47,095 - INFO - word: eight
+2025-06-26 17:42:47,259 - INFO - padded tensor shape: [60, 115, 13]
+2025-06-26 17:42:47,260 - INFO - word: two
+2025-06-26 17:42:47,422 - INFO - padded tensor shape: [60, 99, 13]
+2025-06-26 17:42:47,422 - INFO - word: nine
+2025-06-26 17:42:47,596 - INFO - padded tensor shape: [60, 64, 13]
+2025-06-26 17:42:47,596 - INFO - 
+2025-06-26 17:42:47,597 - INFO - Loading model...
+2025-06-26 17:42:47,598 - INFO - Loaded a new model named carnivoral-bichonfrise-32!
+2025-06-26 17:42:47,598 - INFO - number of HMMs: 10
+
+2025-06-26 17:42:47,599 - INFO - Commence training! some hyperparameters:
+2025-06-26 17:42:47,599 - INFO - states=3,  gmm_components=3
+2025-06-26 17:42:47,599 - INFO - epochs=15,  n_mels=13
+2025-06-26 17:42:47,599 - INFO - seed=1
+
+2025-06-26 17:42:47,599 - INFO - Training HMM for Word  = three!
+2025-06-26 17:42:47,812 - INFO - initial: state log likelihoods: (-9.919, -7.095, -7.617)
+2025-06-26 17:42:48,042 - INFO - epoch 1 state log likelihoods: (-8.722, -5.823, -6.123)
+2025-06-26 17:42:48,257 - INFO - epoch 2 state log likelihoods: (-8.626, -4.786, -4.643)
+2025-06-26 17:42:48,474 - INFO - epoch 3 state log likelihoods: (-8.578, -4.241, -4.766)
+2025-06-26 17:42:48,686 - INFO - epoch 4 state log likelihoods: (-8.514, -4.238, -4.874)
+2025-06-26 17:42:48,903 - INFO - epoch 5 state log likelihoods: (-8.434, -4.433, -4.906)
+2025-06-26 17:42:49,124 - INFO - epoch 6 state log likelihoods: (-8.335, -4.672, -4.882)
+2025-06-26 17:42:49,348 - INFO - epoch 7 state log likelihoods: (-8.123, -4.94, -4.871)
+2025-06-26 17:42:49,569 - INFO - epoch 8 state log likelihoods: (-7.9, -5.166, -4.83)
+2025-06-26 17:42:49,794 - INFO - epoch 9 state log likelihoods: (-7.705, -5.311, -4.771)
+2025-06-26 17:42:50,015 - INFO - epoch 10 state log likelihoods: (-7.568, -5.402, -4.748)
+2025-06-26 17:42:50,237 - INFO - epoch 11 state log likelihoods: (-7.545, -5.437, -4.727)
+2025-06-26 17:42:50,466 - INFO - epoch 12 state log likelihoods: (-7.541, -5.47, -4.713)
+2025-06-26 17:42:50,693 - INFO - epoch 13 state log likelihoods: (-7.539, -5.504, -4.708)
+2025-06-26 17:42:50,918 - INFO - epoch 14 state log likelihoods: (-7.536, -5.53, -4.705)
+2025-06-26 17:42:51,142 - INFO - epoch 15 state log likelihoods: (-7.533, -5.558, -4.662)
+2025-06-26 17:42:51,142 - INFO - 
+
+2025-06-26 17:42:51,142 - INFO - Training HMM for Word  = two!
+2025-06-26 17:42:51,404 - INFO - initial: state log likelihoods: (-11.915, -6.857, -8.374)
+2025-06-26 17:42:51,699 - INFO - epoch 1 state log likelihoods: (-11.879, -5.916, -7.663)
+2025-06-26 17:42:52,336 - INFO - epoch 2 state log likelihoods: (-10.55, -5.524, -7.612)
+2025-06-26 17:42:52,630 - INFO - epoch 3 state log likelihoods: (-9.635, -5.157, -7.633)
+2025-06-26 17:42:52,915 - INFO - epoch 4 state log likelihoods: (-9.269, -4.987, -7.645)
+2025-06-26 17:42:53,226 - INFO - epoch 5 state log likelihoods: (-9.139, -4.957, -7.643)
+2025-06-26 17:42:53,507 - INFO - epoch 6 state log likelihoods: (-9.079, -4.985, -7.621)
+2025-06-26 17:42:53,797 - INFO - epoch 7 state log likelihoods: (-9.036, -5.059, -7.547)
+2025-06-26 17:42:54,094 - INFO - epoch 8 state log likelihoods: (-9.008, -5.101, -7.308)
+2025-06-26 17:42:54,369 - INFO - epoch 9 state log likelihoods: (-9.002, -4.896, -7.227)
+2025-06-26 17:42:54,664 - INFO - epoch 10 state log likelihoods: (-9.006, -4.587, -7.219)
+2025-06-26 17:42:54,952 - INFO - epoch 11 state log likelihoods: (-9.006, -4.361, -7.225)
+2025-06-26 17:42:55,237 - INFO - epoch 12 state log likelihoods: (-9.007, -4.205, -7.229)
+2025-06-26 17:42:55,536 - INFO - epoch 13 state log likelihoods: (-9.01, -4.12, -7.227)
+2025-06-26 17:42:55,764 - INFO - epoch 14 state log likelihoods: (-9.012, -4.072, -7.224)
+2025-06-26 17:42:56,032 - INFO - epoch 15 state log likelihoods: (-9.013, -4.043, -7.221)
+2025-06-26 17:42:56,032 - INFO - 
+
+2025-06-26 17:42:56,032 - INFO - Training HMM for Word  = four!
+2025-06-26 17:42:56,299 - INFO - initial: state log likelihoods: (-9.632, -5.891, -8.566)
+2025-06-26 17:42:56,566 - INFO - epoch 1 state log likelihoods: (-10.215, -4.648, -6.752)
+2025-06-26 17:42:56,814 - INFO - epoch 2 state log likelihoods: (-10.263, -4.095, -5.786)
+2025-06-26 17:42:57,097 - INFO - epoch 3 state log likelihoods: (-10.221, -4.149, -5.619)
+2025-06-26 17:42:57,368 - INFO - epoch 4 state log likelihoods: (-10.118, -4.337, -5.619)
+2025-06-26 17:42:57,641 - INFO - epoch 5 state log likelihoods: (-9.985, -4.445, -5.641)
+2025-06-26 17:42:57,914 - INFO - epoch 6 state log likelihoods: (-9.807, -4.361, -5.712)
+2025-06-26 17:42:58,177 - INFO - epoch 7 state log likelihoods: (-9.885, -4.188, -5.731)
+2025-06-26 17:42:58,450 - INFO - epoch 8 state log likelihoods: (-9.874, -4.094, -5.736)
+2025-06-26 17:42:58,866 - INFO - epoch 9 state log likelihoods: (-9.851, -4.054, -5.738)
+2025-06-26 17:42:59,131 - INFO - epoch 10 state log likelihoods: (-9.824, -4.016, -5.741)
+2025-06-26 17:42:59,396 - INFO - epoch 11 state log likelihoods: (-9.768, -3.986, -5.745)
+2025-06-26 17:42:59,690 - INFO - epoch 12 state log likelihoods: (-9.737, -3.95, -5.749)
+2025-06-26 17:42:59,977 - INFO - epoch 13 state log likelihoods: (-9.698, -3.921, -5.753)
+2025-06-26 17:43:00,249 - INFO - epoch 14 state log likelihoods: (-9.665, -3.901, -5.756)
+2025-06-26 17:43:00,502 - INFO - epoch 15 state log likelihoods: (-9.648, -3.894, -5.76)
+2025-06-26 17:43:00,503 - INFO - 
+
+2025-06-26 17:43:00,503 - INFO - Training HMM for Word  = one!
+2025-06-26 17:43:00,805 - INFO - initial: state log likelihoods: (-12.233, -7.596, -6.564)
+2025-06-26 17:43:01,103 - INFO - epoch 1 state log likelihoods: (-9.86, -6.341, -5.991)
+2025-06-26 17:43:01,506 - INFO - epoch 2 state log likelihoods: (-7.797, -5.992, -5.881)
+2025-06-26 17:43:01,802 - INFO - epoch 3 state log likelihoods: (-7.541, -5.912, -5.861)
+2025-06-26 17:43:02,055 - INFO - epoch 4 state log likelihoods: (-7.409, -5.933, -5.868)
+2025-06-26 17:43:02,310 - INFO - epoch 5 state log likelihoods: (-7.368, -5.921, -5.877)
+2025-06-26 17:43:02,566 - INFO - epoch 6 state log likelihoods: (-7.359, -5.905, -5.882)
+2025-06-26 17:43:02,813 - INFO - epoch 7 state log likelihoods: (-7.351, -5.903, -5.885)
+2025-06-26 17:43:03,060 - INFO - epoch 8 state log likelihoods: (-7.353, -5.899, -5.886)
+2025-06-26 17:43:03,284 - INFO - epoch 9 state log likelihoods: (-7.359, -5.944, -5.887)
+2025-06-26 17:43:03,506 - INFO - epoch 10 state log likelihoods: (-7.375, -5.918, -5.887)
+2025-06-26 17:43:03,706 - INFO - epoch 11 state log likelihoods: (-7.394, -5.891, -5.886)
+2025-06-26 17:43:03,943 - INFO - epoch 12 state log likelihoods: (-7.405, -5.871, -5.885)
+2025-06-26 17:43:04,186 - INFO - epoch 13 state log likelihoods: (-7.409, -5.858, -5.883)
+2025-06-26 17:43:04,426 - INFO - epoch 14 state log likelihoods: (-7.409, -5.852, -5.881)
+2025-06-26 17:43:04,663 - INFO - epoch 15 state log likelihoods: (-7.409, -5.85, -5.879)
+2025-06-26 17:43:04,663 - INFO - 
+
+2025-06-26 17:43:04,663 - INFO - Training HMM for Word  = zero!
+2025-06-26 17:43:04,915 - INFO - initial: state log likelihoods: (-10.189, -6.244, -8.607)
+2025-06-26 17:43:05,159 - INFO - epoch 1 state log likelihoods: (-8.634, -5.28, -7.789)
+2025-06-26 17:43:05,399 - INFO - epoch 2 state log likelihoods: (-8.069, -3.915, -7.465)
+2025-06-26 17:43:05,644 - INFO - epoch 3 state log likelihoods: (-7.116, -3.994, -7.085)
+2025-06-26 17:43:05,884 - INFO - epoch 4 state log likelihoods: (-6.858, -3.97, -6.661)
+2025-06-26 17:43:06,130 - INFO - epoch 5 state log likelihoods: (-6.775, -3.974, -6.344)
+2025-06-26 17:43:06,368 - INFO - epoch 6 state log likelihoods: (-6.721, -4.055, -6.359)
+2025-06-26 17:43:06,610 - INFO - epoch 7 state log likelihoods: (-6.636, -4.071, -6.407)
+2025-06-26 17:43:06,849 - INFO - epoch 8 state log likelihoods: (-6.505, -4.069, -6.433)
+2025-06-26 17:43:07,088 - INFO - epoch 9 state log likelihoods: (-6.367, -4.052, -6.448)
+2025-06-26 17:43:07,331 - INFO - epoch 10 state log likelihoods: (-6.018, -3.977, -6.448)
+2025-06-26 17:43:07,572 - INFO - epoch 11 state log likelihoods: (-5.665, -3.941, -6.437)
+2025-06-26 17:43:07,808 - INFO - epoch 12 state log likelihoods: (-5.656, -3.929, -6.42)
+2025-06-26 17:43:08,044 - INFO - epoch 13 state log likelihoods: (-5.688, -3.92, -6.39)
+2025-06-26 17:43:08,287 - INFO - epoch 14 state log likelihoods: (-5.749, -3.909, -6.389)
+2025-06-26 17:43:08,525 - INFO - epoch 15 state log likelihoods: (-5.79, -3.912, -6.383)
+2025-06-26 17:43:08,525 - INFO - 
+
+2025-06-26 17:43:08,525 - INFO - Training HMM for Word  = five!
+2025-06-26 17:43:08,778 - INFO - initial: state log likelihoods: (-6.353, -6.228, -6.717)
+2025-06-26 17:43:09,025 - INFO - epoch 1 state log likelihoods: (-3.943, -5.541, -6.281)
+2025-06-26 17:43:09,264 - INFO - epoch 2 state log likelihoods: (-3.481, -5.591, -5.795)
+2025-06-26 17:43:09,506 - INFO - epoch 3 state log likelihoods: (-3.402, -5.626, -4.959)
+2025-06-26 17:43:09,749 - INFO - epoch 4 state log likelihoods: (-3.397, -5.649, -4.441)
+2025-06-26 17:43:10,008 - INFO - epoch 5 state log likelihoods: (-3.413, -5.696, -4.088)
+2025-06-26 17:43:10,260 - INFO - epoch 6 state log likelihoods: (-3.466, -5.705, -3.843)
+2025-06-26 17:43:10,523 - INFO - epoch 7 state log likelihoods: (-3.514, -5.695, -3.651)
+2025-06-26 17:43:10,771 - INFO - epoch 8 state log likelihoods: (-3.557, -5.687, -3.482)
+2025-06-26 17:43:11,023 - INFO - epoch 9 state log likelihoods: (-3.596, -5.676, -3.352)
+2025-06-26 17:43:11,269 - INFO - epoch 10 state log likelihoods: (-3.63, -5.662, -3.182)
+2025-06-26 17:43:11,508 - INFO - epoch 11 state log likelihoods: (-3.654, -5.636, -3.061)
+2025-06-26 17:43:11,748 - INFO - epoch 12 state log likelihoods: (-3.685, -5.616, -2.965)
+2025-06-26 17:43:11,992 - INFO - epoch 13 state log likelihoods: (-3.708, -5.603, -2.851)
+2025-06-26 17:43:12,560 - INFO - epoch 14 state log likelihoods: (-3.723, -5.591, -2.749)
+2025-06-26 17:43:12,777 - INFO - epoch 15 state log likelihoods: (-3.736, -5.575, -2.672)
+2025-06-26 17:43:12,777 - INFO - 
+
+2025-06-26 17:43:12,777 - INFO - Training HMM for Word  = nine!
+2025-06-26 17:43:13,242 - INFO - initial: state log likelihoods: (-8.708, -5.666, -6.64)
+2025-06-26 17:43:13,720 - INFO - epoch 1 state log likelihoods: (-6.882, -4.369, -6.306)
+2025-06-26 17:43:14,198 - INFO - epoch 2 state log likelihoods: (-7.031, -3.901, -5.976)
+2025-06-26 17:43:14,650 - INFO - epoch 3 state log likelihoods: (-7.012, -3.678, -5.872)
+2025-06-26 17:43:15,114 - INFO - epoch 4 state log likelihoods: (-7.039, -3.518, -5.805)
+2025-06-26 17:43:15,571 - INFO - epoch 5 state log likelihoods: (-7.07, -3.472, -5.769)
+2025-06-26 17:43:16,034 - INFO - epoch 6 state log likelihoods: (-7.045, -3.454, -5.747)
+2025-06-26 17:43:16,482 - INFO - epoch 7 state log likelihoods: (-7.014, -3.46, -5.73)
+2025-06-26 17:43:16,931 - INFO - epoch 8 state log likelihoods: (-7.023, -3.476, -5.701)
+2025-06-26 17:43:17,386 - INFO - epoch 9 state log likelihoods: (-7.022, -3.494, -5.687)
+2025-06-26 17:43:17,809 - INFO - epoch 10 state log likelihoods: (-7.02, -3.517, -5.685)
+2025-06-26 17:43:18,227 - INFO - epoch 11 state log likelihoods: (-7.019, -3.548, -5.739)
+2025-06-26 17:43:18,669 - INFO - epoch 12 state log likelihoods: (-7.013, -3.599, -5.759)
+2025-06-26 17:43:19,123 - INFO - epoch 13 state log likelihoods: (-6.999, -3.643, -5.717)
+2025-06-26 17:43:19,583 - INFO - epoch 14 state log likelihoods: (-6.988, -3.669, -5.683)
+2025-06-26 17:43:20,025 - INFO - epoch 15 state log likelihoods: (-6.984, -3.683, -5.662)
+2025-06-26 17:43:20,025 - INFO - 
+
+2025-06-26 17:43:20,025 - INFO - Training HMM for Word  = seven!
+2025-06-26 17:43:20,515 - INFO - initial: state log likelihoods: (-9.612, -6.029, -6.474)
+2025-06-26 17:43:21,001 - INFO - epoch 1 state log likelihoods: (-9.684, -5.229, -5.342)
+2025-06-26 17:43:21,477 - INFO - epoch 2 state log likelihoods: (-9.626, -5.003, -5.399)
+2025-06-26 17:43:21,953 - INFO - epoch 3 state log likelihoods: (-9.57, -4.866, -5.386)
+2025-06-26 17:43:22,438 - INFO - epoch 4 state log likelihoods: (-9.573, -4.714, -5.403)
+2025-06-26 17:43:22,934 - INFO - epoch 5 state log likelihoods: (-9.584, -4.568, -5.418)
+2025-06-26 17:43:23,419 - INFO - epoch 6 state log likelihoods: (-9.604, -4.459, -5.433)
+2025-06-26 17:43:23,918 - INFO - epoch 7 state log likelihoods: (-9.612, -4.422, -5.446)
+2025-06-26 17:43:24,410 - INFO - epoch 8 state log likelihoods: (-9.616, -4.402, -5.452)
+2025-06-26 17:43:24,886 - INFO - epoch 9 state log likelihoods: (-9.614, -4.393, -5.454)
+2025-06-26 17:43:25,296 - INFO - epoch 10 state log likelihoods: (-9.612, -4.385, -5.456)
+2025-06-26 17:43:25,771 - INFO - epoch 11 state log likelihoods: (-9.612, -4.38, -5.457)
+2025-06-26 17:43:26,238 - INFO - epoch 12 state log likelihoods: (-9.612, -4.377, -5.458)
+2025-06-26 17:43:26,732 - INFO - epoch 13 state log likelihoods: (-9.613, -4.374, -5.458)
+2025-06-26 17:43:27,232 - INFO - epoch 14 state log likelihoods: (-9.617, -4.368, -5.458)
+2025-06-26 17:43:27,685 - INFO - epoch 15 state log likelihoods: (-9.622, -4.361, -5.458)
+2025-06-26 17:43:27,685 - INFO - 
+
+2025-06-26 17:43:27,685 - INFO - Training HMM for Word  = six!
+2025-06-26 17:43:27,979 - INFO - initial: state log likelihoods: (-7.123, -7.996, -7.651)
+2025-06-26 17:43:28,260 - INFO - epoch 1 state log likelihoods: (-4.117, -7.379, -5.412)
+2025-06-26 17:43:28,532 - INFO - epoch 2 state log likelihoods: (-4.117, -7.291, -4.947)
+2025-06-26 17:43:28,803 - INFO - epoch 3 state log likelihoods: (-4.222, -7.268, -4.826)
+2025-06-26 17:43:29,084 - INFO - epoch 4 state log likelihoods: (-4.255, -7.281, -4.78)
+2025-06-26 17:43:29,359 - INFO - epoch 5 state log likelihoods: (-4.262, -7.264, -4.793)
+2025-06-26 17:43:29,623 - INFO - epoch 6 state log likelihoods: (-4.24, -7.213, -4.864)
+2025-06-26 17:43:29,884 - INFO - epoch 7 state log likelihoods: (-4.203, -7.143, -4.957)
+2025-06-26 17:43:30,153 - INFO - epoch 8 state log likelihoods: (-4.135, -7.05, -4.473)
+2025-06-26 17:43:30,424 - INFO - epoch 9 state log likelihoods: (-4.104, -7.071, -4.159)
+2025-06-26 17:43:30,700 - INFO - epoch 10 state log likelihoods: (-4.1, -7.067, -4.19)
+2025-06-26 17:43:30,983 - INFO - epoch 11 state log likelihoods: (-4.111, -7.058, -4.218)
+2025-06-26 17:43:31,252 - INFO - epoch 12 state log likelihoods: (-4.12, -7.047, -4.249)
+2025-06-26 17:43:31,522 - INFO - epoch 13 state log likelihoods: (-4.128, -7.042, -4.262)
+2025-06-26 17:43:31,792 - INFO - epoch 14 state log likelihoods: (-4.132, -7.039, -4.27)
+2025-06-26 17:43:32,067 - INFO - epoch 15 state log likelihoods: (-4.135, -7.037, -4.278)
+2025-06-26 17:43:32,067 - INFO - 
+
+2025-06-26 17:43:32,067 - INFO - Training HMM for Word  = eight!
+2025-06-26 17:43:32,369 - INFO - initial: state log likelihoods: (-8.061, -7.413, -7.254)
+2025-06-26 17:43:32,645 - INFO - epoch 1 state log likelihoods: (-5.795, -6.565, -6.855)
+2025-06-26 17:43:32,922 - INFO - epoch 2 state log likelihoods: (-5.548, -6.353, -6.95)
+2025-06-26 17:43:33,217 - INFO - epoch 3 state log likelihoods: (-5.527, -6.26, -7.044)
+2025-06-26 17:43:33,430 - INFO - epoch 4 state log likelihoods: (-5.511, -6.151, -7.117)
+2025-06-26 17:43:33,708 - INFO - epoch 5 state log likelihoods: (-5.504, -6.08, -7.15)
+2025-06-26 17:43:33,995 - INFO - epoch 6 state log likelihoods: (-5.5, -6.018, -7.178)
+2025-06-26 17:43:34,283 - INFO - epoch 7 state log likelihoods: (-5.5, -6.005, -7.185)
+2025-06-26 17:43:34,548 - INFO - epoch 8 state log likelihoods: (-5.499, -6.003, -7.179)
+2025-06-26 17:43:34,820 - INFO - epoch 9 state log likelihoods: (-5.498, -5.995, -7.179)
+2025-06-26 17:43:35,102 - INFO - epoch 10 state log likelihoods: (-5.498, -5.99, -7.183)
+2025-06-26 17:43:35,350 - INFO - epoch 11 state log likelihoods: (-5.498, -5.987, -7.186)
+2025-06-26 17:43:35,621 - INFO - epoch 12 state log likelihoods: (-5.499, -5.984, -7.189)
+2025-06-26 17:43:35,893 - INFO - epoch 13 state log likelihoods: (-5.499, -5.981, -7.192)
+2025-06-26 17:43:36,143 - INFO - epoch 14 state log likelihoods: (-5.499, -5.979, -7.194)
+2025-06-26 17:43:36,395 - INFO - epoch 15 state log likelihoods: (-5.499, -5.977, -7.196)
+2025-06-26 17:43:36,395 - INFO - 
+
+2025-06-26 17:43:37,460 - INFO - Accuracy: 0.813333
+
+2025-06-26 17:43:37,460 - INFO - by digit:
+2025-06-26 17:43:37,460 - INFO - zero: 0.9167
+2025-06-26 17:43:37,460 - INFO - one: 0.8667
+2025-06-26 17:43:37,460 - INFO - two: 0.8833
+2025-06-26 17:43:37,460 - INFO - three: 0.6833
+2025-06-26 17:43:37,460 - INFO - four: 0.9167
+2025-06-26 17:43:37,460 - INFO - five: 0.8333
+2025-06-26 17:43:37,460 - INFO - six: 0.75
+2025-06-26 17:43:37,460 - INFO - seven: 0.7667
+2025-06-26 17:43:37,460 - INFO - eight: 0.6333
+2025-06-26 17:43:37,460 - INFO - nine: 0.8833

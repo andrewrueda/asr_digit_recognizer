@@ -5,6 +5,8 @@ import os
 import argparse
 import inspect
 import random
+import logging, io
+from datetime import datetime
 from typing import List, Dict, Tuple, Set, Union
 from data import DataManager, FeatureExtractor
 from model import WordRecognizer, HMM, HMMState, GMM
@@ -42,15 +44,61 @@ def parse_args():
     parser.add_argument('--saved_id', type=str, default=model_configs['saved_id'])
     parser.add_argument('--n_states', type=int, default=model_configs['n_states'])
     parser.add_argument('--n_components', type=int, default=model_configs['n_components'])
-    parser.add_argument('--inner_epochs', type=int, default=model_configs['inner_epochs'])
     parser.add_argument('--device', type=str, default=model_configs['device'])
 
     # parse training
     training_configs = configs["training"]
     parser.add_argument('--seed', type=int, default=training_configs['seed'])
     parser.add_argument('--epochs', type=int, default=training_configs['epochs'])
+    parser.add_argument('--inner_epochs', type=int, default=training_configs['inner_epochs'])
 
     return parser.parse_args()
+
+
+def set_seed(seed: int):
+    """-1 for no manual seed"""
+    if seed >= 0:
+        random.seed(seed)
+        torch.manual_seed(seed)
+
+
+def set_log_buffer(args):
+    """set temporary log buffer before getting model info"""
+    log_buffer = io.StringIO()
+    buffer_handler = logging.StreamHandler(log_buffer)
+    console_handler = logging.StreamHandler()
+
+    for h in logging.root.handlers[:]:
+        logging.root.removeHandler(h)
+
+    logging.basicConfig(level=logging.INFO,
+                        format = "%(asctime)s - %(levelname)s - %(message)s",
+                        handlers=[buffer_handler, console_handler])
+    return log_buffer, buffer_handler
+
+
+def set_logging(args, recognizer: WordRecognizer, log_buffer: io.StringIO,
+                buffer_handler: logging.StreamHandler):
+    """switch log to model dir in logs"""
+    log_path = os.path.join(args.log_dir, recognizer.id)
+
+    if not os.path.isdir(log_path):
+        os.mkdir(log_path)
+        n_files = 0
+    else:
+        n_files = sum(1 for entry in os.scandir(log_path) if entry.is_file())
+
+    log_file = os.path.join(log_path, f"{recognizer.id}-{n_files+1}.log")
+
+    with open(log_file, "w") as f:
+        f.write(log_buffer.getvalue())
+
+    file_handler = logging.FileHandler(log_file, mode="a")
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        
+    root = logging.getLogger()
+    root.removeHandler(buffer_handler)
+    root.addHandler(file_handler)
 
 
 def prepare_data(args) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
@@ -75,19 +123,21 @@ def prepare_data(args) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]
     test_data = data_manager.load_data(split="test")
 
     # extract and load tensors
-    print(f"Loading training tensors...")
+    logging.info(f"Loading training tensors...")
     training_tensors = feature_extractor.target_tensors(train_data)
-    print(f"\nLoading test tensors...")
+
+    logging.info(f"Loading test tensors...")
     test_tensors = feature_extractor.target_tensors(test_data)
 
     return training_tensors, test_tensors
 
 
 def load_model(args) -> WordRecognizer:
-    print(f"\nLoading model...")
+    logging.info("")
+    logging.info(f"Loading model...")
 
     if args.saved_id:
-        print(f"Loading from ID {args.saved_id}.")
+        logging.info(f"Loading saved model {args.saved_id}.")
         return WordRecognizer(from_saved=True, id=args.saved_id)
 
     else:
@@ -106,9 +156,12 @@ def load_model(args) -> WordRecognizer:
             
             word_models[args.vocab[digit]] = HMM(states)
 
-        print(f"number of HMMs: {len(word_models)}\n")
+        recognizer = WordRecognizer(from_saved=False, models=word_models)
 
-        return WordRecognizer(from_saved=False, models=word_models)
+        logging.info(f"Loaded a new model named {recognizer.id}!")
+        logging.info(f"number of HMMs: {len(word_models)}\n")
+
+        return recognizer
 
 
 def forward_backward(args, model: HMM, observations: torch.Tensor,
@@ -214,12 +267,21 @@ def _uniform_segmentation(seq_len: int, n_states: int) -> List[int]:
 def main():
     """Baum-Welch training for HMM-GMM."""
     args = parse_args()
+    set_seed(args.seed)
+    log_buffer, buffer_handler = set_log_buffer(args)
+
     training_tensors, test_tensors = prepare_data(args)
     word_recognizer = load_model(args)
+    set_logging(args, word_recognizer, log_buffer, buffer_handler)
 
     # Training
+    logging.info(f"Commence training! some hyperparameters:")
+    logging.info(f"states={args.n_states},  gmm_components={args.n_components}")
+    logging.info(f"epochs={args.epochs},  n_mels={args.n_mels}")
+    logging.info(f"seed={args.seed}\n")
+
     for target, tensor in training_tensors.items():
-        print(f"Training HMM for Word  = {target}!")
+        logging.info(f"Training HMM for Word  = {target}!")
         hmm = word_recognizer.models[target]
 
         # initialize state responsibilities
@@ -256,15 +318,15 @@ def main():
         state_responsibilties = state_responsibilties.log()
 
         # initial M step (fit gaussians)
-        print(f"initial: {hmm.fit(tensor, state_responsibilties)}")
+        logging.info(f"initial: {hmm.fit(tensor, state_responsibilties)}")
 
         for epoch in range(args.epochs):
             # E step: update state responsibilities
             state_responsibilties = forward_backward(args, hmm, tensor, state_responsibilties, observation_lengths)
 
             # M step: update gaussians
-            print(f"epoch {epoch+1} {hmm.fit(tensor, state_responsibilties)}")
-        print()
+            logging.info(f"epoch {epoch+1} {hmm.fit(tensor, state_responsibilties)}")
+        logging.info("\n")
 
     # Eval test
     tester = HMMTest(word_recognizer, args.vocab)

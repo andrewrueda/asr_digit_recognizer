@@ -3,6 +3,7 @@ import torch.functional as F
 import numpy as np
 from model import WordRecognizer, HMM, HMMState, GMM
 from typing import List, Dict, Tuple, Set, Union
+import logging
 
 
 class HMMTest:
@@ -29,12 +30,12 @@ class HMMTest:
 
         final = correct/total
 
-        print(f"Accuracy: {final:4f}\n")
+        logging.info(f"Accuracy: {final:4f}\n")
 
-        print(f"by digit:")
+        logging.info(f"by digit:")
         by_word = [(self.vocab[i], by_word[self.vocab[i]]) for i in range(len(self.vocab))]
         for word, acc in by_word:
-            print(f"{word}: {acc}")
+            logging.info(f"{word}: {acc}")
         
 
     def predict(self, x: torch.Tensor) -> List[str]:

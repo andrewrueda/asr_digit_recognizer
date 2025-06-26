@@ -2,8 +2,7 @@
              "output_dir": "./data/",
              "log_dir": "./logs/",
              "test_indx": 10, 
-             "vocab": ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
-            },
+             "vocab": ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]},
     
 "features": {"fs": 16000,
              "n_fft": 512,
@@ -18,12 +17,11 @@
 "model":    {"saved_id": null,
             "n_states": 3,
              "n_components": 3,
-             "inner_epochs": 10,
              "device": "auto"},
 
 "training": {"seed": 0,
-             "epochs": 100}
-
+             "epochs": 15,
+             "inner_epochs": 10}
 }
 
 

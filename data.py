@@ -2,6 +2,7 @@ import json
 import torch
 import librosa
 import os
+import logging
 from typing import List, Dict, Tuple, Set
 from collections import defaultdict
 import soundfile as sf
@@ -11,7 +12,8 @@ from torch.nn.utils.rnn import pad_sequence
 
 
 class DataManager:
-    """Handles writing kaldi-like files and loading data."""
+    """Handles writing kaldi-like files and loading data.
+    file name format: word_speaker_indx.wav"""
     def __init__(self, data_dir: str):
         self.data_dir = Path(data_dir)
 
@@ -173,7 +175,7 @@ class FeatureExtractor:
         tensors = dict()
 
         for target, paths in target_dict.items():
-            print(f"word: {target}")
+            logging.info(f"word: {target}")
             sequences = []
 
             for _, path in paths:                
@@ -181,7 +183,7 @@ class FeatureExtractor:
 
             sequences = sorted(sequences, key=lambda x: x.shape[0]) 
             padded = pad_sequence(sequences, batch_first=True)
-            print(f"padded tensor shape: {list(padded.shape)}")
+            logging.info(f"padded tensor shape: {list(padded.shape)}")
 
             shuffled_indices = torch.randperm(len(padded))
             padded_shuffled = padded[shuffled_indices]

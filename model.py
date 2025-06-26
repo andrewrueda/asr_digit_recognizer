@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
+import os
 from typing import List, Dict, Tuple, Set, Union
 import torch.nn.functional as F
 import adjectiveanimalnumber
@@ -179,10 +180,10 @@ class HMM:
         return f"state log likelihoods: {tuple([round(x, 3) for x in log_likelihoods])}"
 
 
-
 class WordRecognizer:
     def __init__(self, from_saved: bool, id: str = None,
                  models: Dict[str, HMM] = None,  path: str = "saved"):
+        self.path = path
         
         if from_saved:
             self.load_saved(f"{path}/{id}.pt")
@@ -194,6 +195,7 @@ class WordRecognizer:
 
     def load_saved(self, id: str):
         self.models = {}
+        self.id = id
 
     def save_model(self):
         pass
@@ -201,23 +203,16 @@ class WordRecognizer:
     def generate_id(self):
         self.id = adjectiveanimalnumber.generate()
 
+        while os.path.isdir(os.path.join(self.path, self.id)):
+            self.id = adjectiveanimalnumber.generate()
 
 
 if __name__ == "__main__":
-    gmm = GMM(n_components = 3, n_features = 80)
+    recognizers = []
 
-    import random
-    from torch.nn.utils.rnn import pad_sequence
+    import torch
+    torch.manual_seed(0)
 
-    observations = []
-    for _ in range(20):
-        n = random.randint(26, 30)
-        observations.append(torch.randn(n, 80))
-
-    observations = sorted(observations, key=lambda x: x.shape[0]) 
-    observations = pad_sequence(observations, batch_first = True)
-
-    state_responsibilities = torch.randn(20, 30) ** 2
-    state_responsibilities = state_responsibilities / state_responsibilities.sum(dim=1, keepdim=True)
-
-    gmm.fit(observations=observations, state_responsibilities=state_responsibilities)
+    for _ in range(5):
+        recognizers.append(WordRecognizer(from_saved=False))
+    print([recognizer.id for recognizer in recognizers])
