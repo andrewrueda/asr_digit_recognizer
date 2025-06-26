@@ -2,10 +2,9 @@
              "output_dir": "./data/",
              "log_dir": "./logs/",
              "test_indx": 10, 
-             "vocab": {"0": "zero", "1": "one", "2": "two", "3": "three",
-                       "4": "four", "5": "five", "6": "six", "7": "seven",
-                       "8": "eight", "9": "nine"}},
-
+             "vocab": ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+            },
+    
 "features": {"fs": 16000,
              "n_fft": 512,
              "n_mels": 13,
@@ -16,7 +15,8 @@
              "frontend_type": "default",
              "use_specaug": false},
 
-"model":    {"n_states": 3,
+"model":    {"saved_id": null,
+            "n_states": 3,
              "n_components": 3,
              "inner_epochs": 10,
              "device": "auto"},

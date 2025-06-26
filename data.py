@@ -16,7 +16,7 @@ class DataManager:
         self.data_dir = Path(data_dir)
 
     def gather_by_word(self, test: bool = False, test_indx: int = 10,
-                       vocab: Dict[str, str] = None) -> defaultdict[str, List[str]]:
+                       vocab: List[str] = None) -> defaultdict[str, List[str]]:
         """Gather audio files by target word."""
         audio_files = defaultdict(list)
 
@@ -27,7 +27,7 @@ class DataManager:
             if (int(indx) < test_indx and test) or (int(indx) >= test_indx and not test):
 
                 if vocab:
-                    word = vocab[word]
+                    word = vocab[int(word)]
 
                 audio_files[word].append(os.path.join(self.data_dir, file_name))
 
@@ -140,7 +140,7 @@ class FeatureExtractor:
 
 
     def extract_features(self, audio_path: str, cmn: bool = True,
-                         apply_specaug: bool = False):
+                         apply_specaug: bool = False) -> torch.Tensor:
         speech, sample_rate = sf.read(audio_path)
 
         # downsample if necessary
@@ -169,10 +169,11 @@ class FeatureExtractor:
         return feats
     
     def target_tensors(self, target_dict: Dict[str, Dict[str, str]]) -> Dict[str, torch.Tensor]:
+        """Return tensors from kaldi-style files"""
         tensors = dict()
 
         for target, paths in target_dict.items():
-            print(f"target: {target}")
+            print(f"word: {target}")
             sequences = []
 
             for _, path in paths:                
@@ -180,14 +181,14 @@ class FeatureExtractor:
 
             sequences = sorted(sequences, key=lambda x: x.shape[0]) 
             padded = pad_sequence(sequences, batch_first=True)
-            print(f"padded tensor shape: {padded.shape}")
+            print(f"padded tensor shape: {list(padded.shape)}")
 
             shuffled_indices = torch.randperm(len(padded))
             padded_shuffled = padded[shuffled_indices]
             tensors[target] = padded_shuffled
 
         return tensors
-
+    
 
     def save_config(self, config_path: str):
         # ToDO
@@ -202,9 +203,6 @@ if __name__ == "__main__":
 
     feature_extractor = FeatureExtractor()
     data_manager = DataManager(data_dir)
-
-    vocab_list = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
-    vocab = { str(i) : vocab_list[i] for i in range(10) }
 
     if not os.path.isdir("data"):
         os.mkdir("data")

@@ -3,6 +3,8 @@ from torch import nn
 import numpy as np
 from typing import List, Dict, Tuple, Set, Union
 import torch.nn.functional as F
+import adjectiveanimalnumber
+
 # from torch.distributions import Categorical, Normal, MixtureSameFamily
 
 
@@ -16,10 +18,7 @@ class GMM(torch.nn.Module):
         # initialize
         self.mixture_weights = nn.Parameter(torch.ones(n_components) / n_components) # 1d, Uniform
         self.means = nn.Parameter(torch.randn(n_components, n_features) * 0.1) # 2d, Random
-
-
-        # self.log_vars = nn.Parameter(torch.zeros(n_components, n_features)) # 2d, Uniform
-        self.log_vars = nn.Parameter(torch.full((n_components, n_features), np.log(10.0))) # 2d, Uniform
+        self.log_vars = nn.Parameter(torch.zeros(n_components, n_features)) # 2d, Zeroes
 
 
     def fit(self, observations: torch.Tensor, state_responsibilities: torch.Tensor,
@@ -37,12 +36,11 @@ class GMM(torch.nn.Module):
             current_log_likelihood = torch.logsumexp(emissions, dim=tuple(range(emissions.ndim))).item()
 
             if abs(current_log_likelihood - prev_log_likelihood) < eps:
-                print(f"converged at iteration {epoch+1}")
                 break
 
             prev_log_likelihood = current_log_likelihood
 
-        print(f"log likelihood: {current_log_likelihood}")
+        return current_log_likelihood
 
 
     def _e_step(self, observations):
@@ -87,12 +85,7 @@ class GMM(torch.nn.Module):
         vars_numerators = weighted_centered.sum(dim=(0, 1)) # (K, F)
 
         variances = vars_numerators / N_k.unsqueeze(-1) # (K, F)
-        self.log_vars.data = variances.clamp(min=1e-6).log() # (K, F)
-
-
-        # # ensure non-negativity
-        # self.means.data = torch.clamp(self.means, min=-10.0, max=10.0)
-        # self.log_vars.data = torch.clamp(self.log_vars, min=-10.0, max=10.0)          
+        self.log_vars.data = variances.clamp(min=1e-6).log() # (K, F)       
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -135,7 +128,6 @@ class GMM(torch.nn.Module):
         return torch.stack(log_probs, dim=-1) # (N, T, K)
 
 
-
 class HMMState:
     def __init__(self, id: int, n_components: int = 3, n_features: int = 80,
                  inner_epochs: int = 10):
@@ -176,19 +168,28 @@ class HMM:
                 row[id] = log_prob
             
             transitions.append(row)
-
         self.transitions = torch.stack(transitions, dim=0)
 
 
-class HMM_GMM_ASR:
-    def __init__(self, id: str, path: str = "saved", models: Dict[str, HMM] = None):
-        self.id = id
+    def fit(self, observations: torch.Tensor, state_responsibilities: torch.Tensor):
+        log_likelihoods = []
+        for i in range(self.n_states):
+            log_likelihood = self.states[i].gmm.fit(observations, state_responsibilities[:, :, i])
+            log_likelihoods.append(log_likelihood)
+        return f"state log likelihoods: {tuple([round(x, 3) for x in log_likelihoods])}"
 
-        if models:
-            self.models = models
+
+
+class WordRecognizer:
+    def __init__(self, from_saved: bool, id: str = None,
+                 models: Dict[str, HMM] = None,  path: str = "saved"):
+        
+        if from_saved:
+            self.load_saved(f"{path}/{id}.pt")
+
         else:
-            # load saved model
-            self.load_saved(id)
+            self.models = models
+            self.generate_id()
 
 
     def load_saved(self, id: str):
@@ -196,6 +197,9 @@ class HMM_GMM_ASR:
 
     def save_model(self):
         pass
+
+    def generate_id(self):
+        self.id = adjectiveanimalnumber.generate()
 
 
 

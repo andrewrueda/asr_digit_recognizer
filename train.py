@@ -7,7 +7,7 @@ import inspect
 import random
 from typing import List, Dict, Tuple, Set, Union
 from data import DataManager, FeatureExtractor
-from model import HMM, HMMState, GMM
+from model import WordRecognizer, HMM, HMMState, GMM
 from eval import HMMTest
 import numpy as np
 
@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument('--output_dir', type=str, default=data_configs['output_dir'])
     parser.add_argument('--log_dir', type=str, default=data_configs['log_dir'])
     parser.add_argument('--test_indx', type=int, default=data_configs['test_indx'])
-    parser.add_argument('--vocab', type=dict, default=data_configs['vocab'])
+    parser.add_argument('--vocab', type=list, default=data_configs['vocab'])
 
     # parse audio features
     features_configs = configs["features"]
@@ -39,6 +39,7 @@ def parse_args():
 
     # parse model
     model_configs = configs["model"]
+    parser.add_argument('--saved_id', type=str, default=model_configs['saved_id'])
     parser.add_argument('--n_states', type=int, default=model_configs['n_states'])
     parser.add_argument('--n_components', type=int, default=model_configs['n_components'])
     parser.add_argument('--inner_epochs', type=int, default=model_configs['inner_epochs'])
@@ -52,7 +53,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def prepare_data(args) -> Tuple[torch.Tensor, torch.Tensor]:
+def prepare_data(args) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
     """Load and prepare data"""
 
     # get only relevant kwargs for feature extractor
@@ -76,31 +77,38 @@ def prepare_data(args) -> Tuple[torch.Tensor, torch.Tensor]:
     # extract and load tensors
     print(f"Loading training tensors...")
     training_tensors = feature_extractor.target_tensors(train_data)
-    print(f"Loading test tensors...")
+    print(f"\nLoading test tensors...")
     test_tensors = feature_extractor.target_tensors(test_data)
 
     return training_tensors, test_tensors
 
 
-def load_model(args) -> Dict[str, HMM]:
-    print(f"Loading model...")
-    word_models = dict()
+def load_model(args) -> WordRecognizer:
+    print(f"\nLoading model...")
 
-    for digit in range(10):
-        states = [HMMState(id=i, n_components=args.n_components, n_features=args.n_mels, inner_epochs=args.inner_epochs)
-                  for i in range(args.n_states)]
+    if args.saved_id:
+        print(f"Loading from ID {args.saved_id}.")
+        return WordRecognizer(from_saved=True, id=args.saved_id)
 
-        for i in range(args.n_states):
-            if i < args.n_states - 1:
-                states[i].add_transition(i, np.log(0.5))      # self-loop
-                states[i].add_transition(i + 1, np.log(0.5))  # forward
-            else:
-                states[i].add_transition(i, np.log(1.0))      # final state self-loop
-        
-        word_models[args.vocab[str(digit)]] = HMM(states)
+    else:
+        word_models = dict()
 
-    print(f"number of HMMs: {len(word_models)}")
-    return word_models
+        for digit in range(10):
+            states = [HMMState(id=i, n_components=args.n_components, n_features=args.n_mels, inner_epochs=args.inner_epochs)
+                    for i in range(args.n_states)]
+
+            for i in range(args.n_states):
+                if i < args.n_states - 1:
+                    states[i].add_transition(i, np.log(0.5))      # self-loop
+                    states[i].add_transition(i + 1, np.log(0.5))  # forward
+                else:
+                    states[i].add_transition(i, np.log(1.0))      # final state self-loop
+            
+            word_models[args.vocab[digit]] = HMM(states)
+
+        print(f"number of HMMs: {len(word_models)}\n")
+
+        return WordRecognizer(from_saved=False, models=word_models)
 
 
 def forward_backward(args, model: HMM, observations: torch.Tensor,
@@ -109,7 +117,7 @@ def forward_backward(args, model: HMM, observations: torch.Tensor,
 
     N, T, F = observations.size()
     S = state_responsibilities.size(2)
-    
+
     # build lattice
     lattice = torch.zeros(N, T, S)
 
@@ -120,7 +128,7 @@ def forward_backward(args, model: HMM, observations: torch.Tensor,
     # get transitions
     transitions = model.transitions.unsqueeze(0) # (1, S, S)
 
-    # fill alpha tensor
+    # Fill alpha Tensor
     alpha = torch.zeros(N, T, S)
     alpha[:, 0, 0] = lattice[:, 0, 0]
     alpha[:, 0, 1:] = float('-inf')
@@ -135,32 +143,32 @@ def forward_backward(args, model: HMM, observations: torch.Tensor,
         alpha_t = torch.logsumexp(alpha_t, dim=1) # (N, 1, S)
         alpha[:, t, :] = alpha_t
 
+    # Fill beta Tensor
+    beta = torch.full_like(state_responsibilities, float('-inf')) # (N, T, S)
 
-    # fill beta tensor
-    beta = torch.zeros(state_responsibilities.shape) # (N, T, S)
-
-    last_indices = torch.tensor(observation_lengths) - 1 # (N,)
+    last_indices = observation_lengths - 1 # (N,)
     N_range = torch.arange(N)
 
-    # set final state value from lattice, neg inf for other states
+    # set final state value from lattice
     beta[N_range, last_indices, S-1] = lattice[N_range, last_indices, S-1]
-    beta[N_range, last_indices, :S-1] = float('-inf')
 
     # transpose transitions
-    transitions_back = transitions.transpose(1, 2)
+    transitions_back = transitions.transpose(1, 2) # (S, S)
 
-    for i in range(N):
-        for t in range(last_indices[i]-1, 0, -1):
+    for t in reversed(range(T-1)):
+        # mask over t > last_indices
+        mask_t = (t < last_indices).to(beta.dtype).unsqueeze(-1) # (N, 1)
 
-            beta_t = beta[i, t+1, :].detach().clone().unsqueeze(-1) # (1, S, 1)
+        # get last beta and emissions
+        beta_t = beta[:, t+1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
+        emissions_t = lattice[:, t, :].detach().clone().unsqueeze(1) # (N, 1, S)
 
-            emissions_t = lattice[i, t, :].detach().clone().unsqueeze(-1) # (1, S, 1)
+        # sum paths to beta_t
+        beta_t = beta_t + transitions_back + emissions_t
+        beta_t = torch.logsumexp(beta_t, dim=1) # (N, 1, S)
 
-            beta_t = beta_t + transitions_back + emissions_t # (1, S, S)
-            
-            beta_t = torch.logsumexp(beta_t, dim=1) # (1, 1, S)
-
-            beta[i, t, :] = beta_t
+        # update where not masked
+        beta[:, t, :] = torch.where(mask_t.bool(), beta_t, beta[:, t, :])
 
 
     # initialize new log state responsibilities
@@ -168,11 +176,6 @@ def forward_backward(args, model: HMM, observations: torch.Tensor,
     new_state_responsibilities[:, 0, :] = torch.tensor([1., 0., 0.]).log()
 
     gamma = alpha[:, 1:, :] + beta[:, 1:, :] # (N, T-1, S)
-
-    # ???
-    log_likelihood = torch.logsumexp(alpha[N_range, last_indices, :], dim=-1)  # (N,) sum over final states
-    gamma -= log_likelihood.unsqueeze(-1).unsqueeze(-1)
-
     new_state_responsibilities[:, 1:, :] = gamma
 
 
@@ -212,12 +215,12 @@ def main():
     """Baum-Welch training for HMM-GMM."""
     args = parse_args()
     training_tensors, test_tensors = prepare_data(args)
-    word_models = load_model(args)
+    word_recognizer = load_model(args)
 
     # Training
     for target, tensor in training_tensors.items():
-        print(f"training word {target}!")
-        hmm = word_models[target]
+        print(f"Training HMM for Word  = {target}!")
+        hmm = word_recognizer.models[target]
 
         # initialize state responsibilities
         state_responsibilties = torch.ones(tensor.shape[0], tensor.shape[1], args.n_states) # (N, T, S)
@@ -234,18 +237,13 @@ def main():
             for j in range(args.n_states):
                 new_row = []
                 for k in range(len(weights)):
-
                     z = ((1. - (0.05 * (args.n_states-1))) if j==k else 0.05)
-
-                    # z = (1. if j==k else 0.)
-
                     new_row.extend([z] * weights[k])
 
                 unused = [0.] * (state_responsibilties.size(1) - seq_len)
                 new_row.extend(unused)
 
                 state_responsibilties[i, :, j] = torch.tensor(new_row)
-
 
             # force align start and end
             force_start = torch.tensor([1.] + [0.] * (args.n_states-1))
@@ -258,47 +256,19 @@ def main():
         state_responsibilties = state_responsibilties.log()
 
         # initial M step (fit gaussians)
-        for i in range(hmm.n_states):
-            state = hmm.states[i]
-            state.gmm.fit(tensor, state_responsibilties[:,:, i])
+        print(f"initial: {hmm.fit(tensor, state_responsibilties)}")
 
-        for epoch in range(1, args.epochs):
+        for epoch in range(args.epochs):
             # E step: update state responsibilities
             state_responsibilties = forward_backward(args, hmm, tensor, state_responsibilties, observation_lengths)
 
             # M step: update gaussians
-            print(f"M step:")
-            for i in range(hmm.n_states):
-                state = hmm.states[i]
-                print(f"state {i}...")
-                state.gmm.fit(tensor, state_responsibilties[:,:, i])
+            print(f"epoch {epoch+1} {hmm.fit(tensor, state_responsibilties)}")
+        print()
 
-
-
-    # temp eval
-    vocab_list = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
-    results = {}
-
-    for target in vocab_list:
-
-        tester = HMMTest(word_models, test_tensor = test_tensors[target])
-
-        predictions = tester.batch_inference()
-
-        correct = 0
-        total = 0
-        for pred, value in predictions:
-            if pred == target:
-                correct += 1
-            total += 1
-
-        results[target] = correct/total
-
-    final = sum(results.values())
-    print(final / 10)
-    print()
-    print(results)
-
+    # Eval test
+    tester = HMMTest(word_recognizer, args.vocab)
+    tester.evaluate(test_tensors)
 
 
 if __name__ == "__main__":
