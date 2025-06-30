@@ -62,7 +62,7 @@ def set_seed(seed: int):
         torch.manual_seed(seed)
 
 
-def set_log_buffer(args):
+def _set_log_buffer():
     """set temporary log buffer before getting model info"""
     log_buffer = io.StringIO()
     buffer_handler = logging.StreamHandler(log_buffer)
@@ -138,7 +138,7 @@ def load_model(args) -> WordRecognizer:
 
     if args.saved_id:
         logging.info(f"Loading saved model {args.saved_id}.")
-        return WordRecognizer(from_saved=True, id=args.saved_id)
+        return torch.load(f"saved/{args.saved_id}/{args.saved_id}.pt")
 
     else:
         word_models = dict()
@@ -156,7 +156,7 @@ def load_model(args) -> WordRecognizer:
             
             word_models[args.vocab[digit]] = HMM(states)
 
-        recognizer = WordRecognizer(from_saved=False, models=word_models)
+        recognizer = WordRecognizer(models=word_models)
 
         logging.info(f"Loaded a new model named {recognizer.id}!")
         logging.info(f"number of HMMs: {len(word_models)}\n")
@@ -264,11 +264,15 @@ def _uniform_segmentation(seq_len: int, n_states: int) -> List[int]:
     return weights
 
 
+def save_model(args, model: WordRecognizer):
+    pass
+
+
 def main():
     """Baum-Welch training for HMM-GMM."""
     args = parse_args()
     set_seed(args.seed)
-    log_buffer, buffer_handler = set_log_buffer(args)
+    log_buffer, buffer_handler = _set_log_buffer()
 
     training_tensors, test_tensors = prepare_data(args)
     word_recognizer = load_model(args)
@@ -331,6 +335,17 @@ def main():
     # Eval test
     tester = HMMTest(word_recognizer, args.vocab)
     tester.evaluate(test_tensors)
+
+    # Save model
+    save_path = os.path.join("saved", word_recognizer.id)
+    os.makedirs(save_path, exist_ok=True)
+
+    args_dict = vars(args)
+
+    with open(os.path.join(save_path, "settings.json"), "w", encoding="utf-8") as f:
+        json.dump(args_dict, f, indent=4)
+
+    torch.save(word_recognizer, os.path.join(save_path, f"{word_recognizer.id}.pt"))
 
 
 if __name__ == "__main__":

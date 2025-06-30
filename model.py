@@ -181,24 +181,10 @@ class HMM:
 
 
 class WordRecognizer:
-    def __init__(self, from_saved: bool, id: str = None,
-                 models: Dict[str, HMM] = None,  path: str = "saved"):
-        self.path = path
-        
-        if from_saved:
-            self.load_saved(f"{path}/{id}.pt")
-
-        else:
-            self.models = models
-            self.generate_id()
-
-
-    def load_saved(self, id: str):
-        self.models = {}
-        self.id = id
-
-    def save_model(self):
-        pass
+    def __init__(self, id: str = None,
+                 models: Dict[str, HMM] = None):
+        self.models = models
+        self.generate_id()
 
     def generate_id(self):
         self.id = adjectiveanimalnumber.generate()

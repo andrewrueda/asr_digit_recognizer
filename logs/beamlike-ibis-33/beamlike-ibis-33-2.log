@@ -1,0 +1,34 @@
+2025-06-30 13:19:06,479 [INFO] Loading test tensors...
+2025-06-30 13:19:06,480 [INFO] word: five
+2025-06-30 13:19:06,970 [INFO] padded tensor shape: [60, 115, 13]
+2025-06-30 13:19:06,970 [INFO] word: one
+2025-06-30 13:19:07,162 [INFO] padded tensor shape: [60, 81, 13]
+2025-06-30 13:19:07,162 [INFO] word: three
+2025-06-30 13:19:07,333 [INFO] padded tensor shape: [60, 132, 13]
+2025-06-30 13:19:07,333 [INFO] word: six
+2025-06-30 13:19:07,521 [INFO] padded tensor shape: [60, 88, 13]
+2025-06-30 13:19:07,521 [INFO] word: four
+2025-06-30 13:19:07,713 [INFO] padded tensor shape: [60, 65, 13]
+2025-06-30 13:19:07,713 [INFO] word: seven
+2025-06-30 13:19:07,912 [INFO] padded tensor shape: [60, 104, 13]
+2025-06-30 13:19:07,912 [INFO] word: zero
+2025-06-30 13:19:08,133 [INFO] padded tensor shape: [60, 117, 13]
+2025-06-30 13:19:08,133 [INFO] word: eight
+2025-06-30 13:19:08,316 [INFO] padded tensor shape: [60, 115, 13]
+2025-06-30 13:19:08,316 [INFO] word: two
+2025-06-30 13:19:08,482 [INFO] padded tensor shape: [60, 99, 13]
+2025-06-30 13:19:08,482 [INFO] word: nine
+2025-06-30 13:19:08,679 [INFO] padded tensor shape: [60, 64, 13]
+2025-06-30 13:19:09,676 [INFO] Accuracy: 0.828333
+
+2025-06-30 13:19:09,677 [INFO] by digit:
+2025-06-30 13:19:09,677 [INFO] zero: 0.95
+2025-06-30 13:19:09,677 [INFO] one: 0.9167
+2025-06-30 13:19:09,677 [INFO] two: 0.9167
+2025-06-30 13:19:09,677 [INFO] three: 0.7
+2025-06-30 13:19:09,677 [INFO] four: 0.8333
+2025-06-30 13:19:09,677 [INFO] five: 0.8667
+2025-06-30 13:19:09,677 [INFO] six: 0.7667
+2025-06-30 13:19:09,677 [INFO] seven: 0.7833
+2025-06-30 13:19:09,677 [INFO] eight: 0.6167
+2025-06-30 13:19:09,677 [INFO] nine: 0.9333
