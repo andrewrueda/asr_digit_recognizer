@@ -13,6 +13,7 @@ import logging
 
 
 class HMMTest:
+    """Test class for Word Recognizers"""
     def __init__(self, word_recognizer: WordRecognizer, vocab: List[str]):
         self.word_recognizer = word_recognizer
         self.vocab = vocab
@@ -162,7 +163,6 @@ def main():
         for key, value in settings.items():
             setattr(args, key, value)
 
-    set_logging(args)
 
     recognizer = torch.load(f"saved/{args.model_id}/{args.model_id}.pt", weights_only=False)
     tester = HMMTest(recognizer, vocab=args.vocab)
@@ -173,13 +173,10 @@ def main():
         print(y[0])
         
     else:
+        set_logging(args)
         test_tensors = prepare_test_data(args)
         tester.evaluate(test_tensors)
 
 
 if __name__ == "__main__":
     main()
-
-
-
-

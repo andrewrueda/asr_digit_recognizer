@@ -6,7 +6,6 @@ import argparse
 import inspect
 import random
 import logging, io
-from datetime import datetime
 from typing import List, Dict, Tuple, Set, Union
 from data import DataManager, FeatureExtractor
 from model import WordRecognizer, HMM, HMMState, GMM
@@ -101,6 +100,47 @@ def set_logging(args, recognizer: WordRecognizer, log_buffer: io.StringIO,
     root.addHandler(file_handler)
 
 
+def load_model(args) -> WordRecognizer:
+    logging.info("")
+    logging.info(f"Loading model...")
+
+    if args.saved_id:
+        model_id = args.saved_id
+
+        logging.info(f"Loading saved model {model_id}.")
+
+        with open(f"saved/{model_id}/settings.json", "r", encoding="utf-8") as settings_file:
+            settings = json.load(settings_file)
+
+        for key, value in settings.items():
+            setattr(args, key, value)
+
+        return torch.load(f"saved/{model_id}/{model_id}.pt", weights_only=False)
+    
+    else:
+        word_models = dict()
+
+        for digit in range(10):
+            states = [HMMState(id=i, n_components=args.n_components, n_features=args.n_mels, inner_epochs=args.inner_epochs)
+                    for i in range(args.n_states)]
+
+            for i in range(args.n_states):
+                if i < args.n_states - 1:
+                    states[i].add_transition(i, np.log(0.5))      # self-loop
+                    states[i].add_transition(i + 1, np.log(0.5))  # forward
+                else:
+                    states[i].add_transition(i, np.log(1.0))      # final state self-loop
+            
+            word_models[args.vocab[digit]] = HMM(states)
+
+        recognizer = WordRecognizer(models=word_models)
+
+        logging.info(f"Loaded a new model named {recognizer.id}!")
+        logging.info(f"number of HMMs: {len(word_models)}\n")
+
+        return recognizer    
+
+
 def prepare_data(args) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
     """Load and prepare data"""
 
@@ -132,39 +172,7 @@ def prepare_data(args) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]
     return training_tensors, test_tensors
 
 
-def load_model(args) -> WordRecognizer:
-    logging.info("")
-    logging.info(f"Loading model...")
-
-    if args.saved_id:
-        logging.info(f"Loading saved model {args.saved_id}.")
-        return torch.load(f"saved/{args.saved_id}/{args.saved_id}.pt")
-
-    else:
-        word_models = dict()
-
-        for digit in range(10):
-            states = [HMMState(id=i, n_components=args.n_components, n_features=args.n_mels, inner_epochs=args.inner_epochs)
-                    for i in range(args.n_states)]
-
-            for i in range(args.n_states):
-                if i < args.n_states - 1:
-                    states[i].add_transition(i, np.log(0.5))      # self-loop
-                    states[i].add_transition(i + 1, np.log(0.5))  # forward
-                else:
-                    states[i].add_transition(i, np.log(1.0))      # final state self-loop
-            
-            word_models[args.vocab[digit]] = HMM(states)
-
-        recognizer = WordRecognizer(models=word_models)
-
-        logging.info(f"Loaded a new model named {recognizer.id}!")
-        logging.info(f"number of HMMs: {len(word_models)}\n")
-
-        return recognizer
-
-
-def forward_backward(args, model: HMM, observations: torch.Tensor,
+def forward_backward(model: HMM, observations: torch.Tensor,
                      state_responsibilities: torch.Tensor, observation_lengths: torch.Tensor) -> torch.Tensor:
     """E step of Baum-Welch (Forward Backward Algorithm)"""
 
@@ -264,18 +272,14 @@ def _uniform_segmentation(seq_len: int, n_states: int) -> List[int]:
     return weights
 
 
-def save_model(args, model: WordRecognizer):
-    pass
-
-
 def main():
     """Baum-Welch training for HMM-GMM."""
     args = parse_args()
     set_seed(args.seed)
     log_buffer, buffer_handler = _set_log_buffer()
 
-    training_tensors, test_tensors = prepare_data(args)
     word_recognizer = load_model(args)
+    training_tensors, test_tensors = prepare_data(args)
     set_logging(args, word_recognizer, log_buffer, buffer_handler)
 
     # Training
@@ -326,7 +330,7 @@ def main():
 
         for epoch in range(args.epochs):
             # E step: update state responsibilities
-            state_responsibilties = forward_backward(args, hmm, tensor, state_responsibilties, observation_lengths)
+            state_responsibilties = forward_backward(hmm, tensor, state_responsibilties, observation_lengths)
 
             # M step: update gaussians
             logging.info(f"epoch {epoch+1} {hmm.fit(tensor, state_responsibilties)}")
