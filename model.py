@@ -6,8 +6,6 @@ from typing import List, Dict, Tuple, Set, Union
 import torch.nn.functional as F
 import adjectiveanimalnumber
 
-# from torch.distributions import Categorical, Normal, MixtureSameFamily
-
 
 class GMM(torch.nn.Module):
     def __init__(self, n_components: int, n_features: int, inner_epochs: int = 10):
@@ -92,10 +90,11 @@ class GMM(torch.nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """emit log-likelihood of observations"""
         # if not batched, add batch dim
-        if x.dim() == 1:
+        if x.dim() == 2:
             x = x.unsqueeze(0)
 
         log_probs = self._compute_log_probs(x) # (N, T, K)
+
         return torch.logsumexp(log_probs, dim=2) # (N, T)
 
     
@@ -120,11 +119,12 @@ class GMM(torch.nn.Module):
                                normalization_constant)
             
             log_prob += torch.log(self.mixture_weights[k] + 1e-8)
-            
+
             # apply mask
             log_prob = log_prob.masked_fill(~mask, float('-inf'))
             
             log_probs.append(log_prob)
+
 
         return torch.stack(log_probs, dim=-1) # (N, T, K)
 
@@ -174,8 +174,10 @@ class HMM:
 
     def fit(self, observations: torch.Tensor, state_responsibilities: torch.Tensor):
         log_likelihoods = []
+
         for i in range(self.n_states):
             log_likelihood = self.states[i].gmm.fit(observations, state_responsibilities[:, :, i])
+
             log_likelihoods.append(log_likelihood)
         return f"state log likelihoods: {tuple([round(x, 3) for x in log_likelihoods])}"
 
@@ -189,16 +191,5 @@ class WordRecognizer:
     def generate_id(self):
         self.id = adjectiveanimalnumber.generate()
 
-        while os.path.isdir(os.path.join(self.path, self.id)):
+        while os.path.isdir(os.path.join("saved", self.id)):
             self.id = adjectiveanimalnumber.generate()
-
-
-if __name__ == "__main__":
-    recognizers = []
-
-    import torch
-    torch.manual_seed(0)
-
-    for _ in range(5):
-        recognizers.append(WordRecognizer(from_saved=False))
-    print([recognizer.id for recognizer in recognizers])

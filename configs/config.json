@@ -12,7 +12,7 @@
              "fmin": 80,
              "fmax": 7600,
              "frontend_type": "default",
-             "use_specaug": false},
+             "use_specaug": true},
 
 "model":    {"saved_id": null,
             "n_states": 3,

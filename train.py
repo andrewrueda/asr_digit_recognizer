@@ -153,10 +153,13 @@ def prepare_data(args) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]
     data_manager = DataManager(args.data_dir)
 
     # gather and load data kaldi-style for train and test
-    train_files = data_manager.gather_by_word(test=False, test_indx=args.test_indx, vocab=args.vocab)
+    separated_by_word = True if args.data_dir == "digits_kaggle" else False
+    train_files = data_manager.gather_by_word(test=False, test_indx=args.test_indx,
+                                            vocab=args.vocab, separated_by_word=separated_by_word)
     data_manager.kaldi_prepare(train_files, output_dir=os.path.join(args.output_dir, "train"))
 
-    test_files = data_manager.gather_by_word(test=True, test_indx=args.test_indx, vocab=args.vocab)
+    test_files = data_manager.gather_by_word(test=True, test_indx=args.test_indx,
+                                            vocab=args.vocab, separated_by_word=separated_by_word)
     data_manager.kaldi_prepare(test_files, output_dir=os.path.join(args.output_dir, "test"))
 
     train_data = data_manager.load_data(split="train")
@@ -234,7 +237,7 @@ def forward_backward(model: HMM, observations: torch.Tensor,
 
     # initialize new log state responsibilities
     new_state_responsibilities = torch.full((N, T, S), float('-inf'))
-    new_state_responsibilities[:, 0, :] = torch.tensor([1., 0., 0.]).log()
+    new_state_responsibilities[:, 0, :] = torch.tensor([1.] + [0.] * (S-1)).log()
 
     gamma = alpha[:, 1:, :] + beta[:, 1:, :] # (N, T-1, S)
     new_state_responsibilities[:, 1:, :] = gamma
@@ -283,13 +286,14 @@ def main():
     set_logging(args, word_recognizer, log_buffer, buffer_handler)
 
     # Training
-    logging.info(f"Commence training! some hyperparameters:")
-    logging.info(f"states={args.n_states},  gmm_components={args.n_components}")
-    logging.info(f"epochs={args.epochs},  n_mels={args.n_mels}")
+    logging.info(f"Commence training on {args.data_dir}! some hyperparameters:")
+    logging.info(f"hmm_states={args.n_states},  gmm_components={args.n_components}")
+    logging.info(f"epochs={args.epochs},  inner_epochs={args.inner_epochs}")
+    logging.info(f"n_mels={args.n_mels}, spec_aug={args.use_specaug}")
     logging.info(f"seed={args.seed}\n")
 
     for target, tensor in training_tensors.items():
-        logging.info(f"Training HMM for Word  = {target}!")
+        logging.info(f"Training HMM for Word = {target}!")
         hmm = word_recognizer.models[target]
 
         # initialize state responsibilities
@@ -325,8 +329,10 @@ def main():
         # take log
         state_responsibilties = state_responsibilties.log()
 
+
         # initial M step (fit gaussians)
-        logging.info(f"initial: {hmm.fit(tensor, state_responsibilties)}")
+        logging.info(f"initial {hmm.fit(tensor, state_responsibilties)}")
+
 
         for epoch in range(args.epochs):
             # E step: update state responsibilities

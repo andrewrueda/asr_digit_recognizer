@@ -3,11 +3,15 @@ import torch
 import librosa
 import os
 import logging
+import random
+import regex as re
 from typing import List, Dict, Tuple, Set
 from collections import defaultdict
-import soundfile as sf
 from pathlib import Path
+import soundfile as sf
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.fused import FusedFrontends
+from espnet2.asr.specaug.specaug import SpecAug
 from torch.nn.utils.rnn import pad_sequence
 
 
@@ -17,24 +21,44 @@ class DataManager:
     def __init__(self, data_dir: str):
         self.data_dir = Path(data_dir)
 
-    def gather_by_word(self, test: bool = False, test_indx: int = 10,
+
+    def gather_by_word(self, test: bool = False, test_indx: int = 10, separated_by_word = False,
                        vocab: List[str] = None) -> defaultdict[str, List[str]]:
-        """Gather audio files by target word."""
+        """gather audio files by target word."""
+
         audio_files = defaultdict(list)
 
-        for file_name in os.listdir(self.data_dir):
-            word, _, indx = file_name.split("_")
-            indx, _ = indx.split(".")
+        if separated_by_word:
+            # for Kaggle dataset
+            for dir_path, _, files in os.walk(self.data_dir):
+                if dir_path == self.data_dir:
+                    continue
 
-            if (int(indx) < test_indx and test) or (int(indx) >= test_indx and not test):
+                word = os.path.basename(dir_path)
 
-                if vocab:
-                    word = vocab[int(word)]
+                for file in files:
+                    if file.endswith('wav'):
+                        file_path = os.path.join(dir_path, file)
 
-                audio_files[word].append(os.path.join(self.data_dir, file_name))
+                        is_train = random.random() > (test_indx / 100)
+
+                        if (is_train ^ test):
+                            audio_files[word].append(file_path)
+
+        else:
+            # for smaller free spoken digit dataset
+            for file_name in os.listdir(self.data_dir):
+                word, _, indx = file_name.split("_")
+                indx, _ = indx.split(".")
+
+                if (int(indx) < test_indx and test) or (int(indx) >= test_indx and not test):
+                    if vocab:
+                        word = vocab[int(word)]
+
+                    audio_files[word].append(os.path.join(self.data_dir, file_name))
 
         return audio_files
-    
+
 
     def _write_file(self, file_path: Path, lines: List[str]):
         with open(file_path, "w", encoding="utf-8") as f:
@@ -45,7 +69,6 @@ class DataManager:
     def kaldi_prepare(self, audio_files: defaultdict[str, List[str]],
                       output_dir: str = "data"):
         """Prepare dataset in Kaldi-style format."""
-
         wav_scp = []
         utt2spk = []
         text = []
@@ -53,10 +76,18 @@ class DataManager:
         for word, files in audio_files.items():
             for file in files:
                 file_name = os.path.basename(file)
-                _, speaker, end = file_name.split("_")
-                indx, _ = end.split(".")
-                utt_id = f"{word}-{speaker}-{indx}"
 
+                pattern = f"nohash"
+                match = re.search(pattern, file)
+
+                if match:
+                    indx, speaker, *_ = file_name.split("_")
+
+                else:
+                    _, speaker, end = file_name.split("_")
+                    indx, _ = end.split(".")
+
+                utt_id = f"{word}-{speaker}-{indx}"
                 wav_scp.append(f"{utt_id} {Path(file)}")
                 utt2spk.append(f"{utt_id} {speaker}")
                 text.append(f"{utt_id} {word}")
@@ -79,7 +110,7 @@ class DataManager:
         with open(f"{output_dir}/spk2utt.scp", "w", encoding="utf-8") as f:
             for spk, utts in spk2utt.items():
                 f.write(f"{spk} {' '.join(utts)}\n")
-
+            
 
     def load_data(self, split = "train", wav_scp_file: str = "wav.scp",
                     text_scp_file: str = "text.scp") -> defaultdict[str, List[Tuple[str, str]]]:
@@ -132,14 +163,24 @@ class FeatureExtractor:
             )
 
         elif frontend_type == "fused":
-            # ToDo
-            pass
+            self.frontend = FusedFrontends(
+                fs=fs,
+                n_fft=n_fft,
+                n_mels=n_mels,
+                hop_length=hop_length,
+                win_length=win_length,
+                fmin=fmin,
+                fmax=fmax,
+            )
         
         self.specaug = None
         if use_specaug:
-            # ToDo
-            pass
-
+            self.specaug = SpecAug(
+                time_mask_width_range=(0, 40),
+                freq_mask_width_range=(0, 30),
+                num_time_mask=2,
+                num_freq_mask=2
+            )
 
     def extract_features(self, audio_path: str, cmn: bool = True,
                          apply_specaug: bool = False) -> torch.Tensor:

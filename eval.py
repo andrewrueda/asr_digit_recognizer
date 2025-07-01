@@ -11,7 +11,6 @@ from typing import List, Dict, Tuple, Set, Union
 import logging
 
 
-
 class HMMTest:
     """Test class for Word Recognizers"""
     def __init__(self, word_recognizer: WordRecognizer, vocab: List[str]):
@@ -93,7 +92,7 @@ class HMMTest:
 
         preds = torch.argmax(log_probs, dim=0)
         return [words[i] for i in preds]
-
+    
 
 def set_logging(args):
     log_subdir = os.path.join(args.log_dir, args.model_id)
@@ -127,7 +126,9 @@ def prepare_test_data(args) -> Dict[str, torch.Tensor]:
     data_manager = DataManager(args.data_dir)
 
     # gather and load data kaldi-style for test
-    test_files = data_manager.gather_by_word(test=True, test_indx=args.test_indx, vocab=args.vocab)
+    separated_by_word = True if args.data_dir == "digits_kaggle" else False
+    test_files = data_manager.gather_by_word(test=True, test_indx=args.test_indx,
+                                             vocab=args.vocab, separated_by_word=separated_by_word)
     data_manager.kaldi_prepare(test_files, output_dir=os.path.join(args.output_dir, "test"))
     test_data = data_manager.load_data(split="test")
 
@@ -140,13 +141,17 @@ def prepare_test_data(args) -> Dict[str, torch.Tensor]:
 
 def prepare_one_inference(args) -> torch.Tensor:
     """Get features for one sample"""
+
+    if isinstance(args, argparse.Namespace):
+        args = vars(args)
+
     feature_params = inspect.signature(FeatureExtractor.__init__).parameters
-    feature_kwargs = {key: getattr(args, key) for key in feature_params
-                      if key != "self" and hasattr(args, key)}
+
+    feature_kwargs = {key: args[key] for key in feature_params
+                      if key != "self" and key in args}
     
     feature_extractor = FeatureExtractor(**feature_kwargs)
-    return feature_extractor.extract_features(args.audio_file)
-
+    return feature_extractor.extract_features(args['audio_file'])
 
 
 def main():
@@ -171,12 +176,12 @@ def main():
         x = prepare_one_inference(args)
         y = tester.predict(x)
         print(y[0])
+        return y[0]
         
     else:
         set_logging(args)
         test_tensors = prepare_test_data(args)
         tester.evaluate(test_tensors)
-
 
 if __name__ == "__main__":
     main()
