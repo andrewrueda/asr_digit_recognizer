@@ -1,5 +1,7 @@
 # ASR Digit Recognizer
 
+## Usage:
+streamlit run main.py
 
 ## Datasets:
 
