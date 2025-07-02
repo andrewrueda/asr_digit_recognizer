@@ -192,14 +192,15 @@ def forward_backward(model: HMM, observations: torch.Tensor,
     # get transitions
     transitions = model.transitions.unsqueeze(0) # (1, S, S)
 
-    # Fill alpha Tensor
+    # Fill Alpha Tensor (pre-emissions)
     alpha = torch.zeros(N, T, S)
-    alpha[:, 0, 0] = lattice[:, 0, 0]
+    alpha[:, 0, 0] = 0.
     alpha[:, 0, 1:] = float('-inf')
 
     for t in range(1, T):
         # add last alpha, last emissions, and logsumexped transitions
         alpha_t = alpha[:, t-1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
+
         emissions_t = lattice[:, t-1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
 
         alpha_t = alpha_t + emissions_t + transitions # (N, S, S)
@@ -207,7 +208,7 @@ def forward_backward(model: HMM, observations: torch.Tensor,
         alpha_t = torch.logsumexp(alpha_t, dim=1) # (N, 1, S)
         alpha[:, t, :] = alpha_t
 
-    # Fill beta Tensor
+    # Fill Beta Tensor (post_emissions)
     beta = torch.full_like(state_responsibilities, float('-inf')) # (N, T, S)
 
     last_indices = observation_lengths - 1 # (N,)
@@ -236,27 +237,17 @@ def forward_backward(model: HMM, observations: torch.Tensor,
 
 
     # initialize new log state responsibilities
-    new_state_responsibilities = torch.full((N, T, S), float('-inf'))
-    new_state_responsibilities[:, 0, :] = torch.tensor([1.] + [0.] * (S-1)).log()
+    gamma = alpha + beta # (N, T, S)
+    log_likelihood = torch.amax(gamma, dim=(1, 2))
 
-    gamma = alpha[:, 1:, :] + beta[:, 1:, :] # (N, T-1, S)
-    new_state_responsibilities[:, 1:, :] = gamma
+    new_state_responsibilities = gamma - log_likelihood.unsqueeze(-1).unsqueeze(-1)
 
+    # force align beginning and end for good measure
+    new_state_responsibilities[:, 0, 0] = 0.
+    new_state_responsibilities[N_range, last_indices, S-1] = 0.
 
-    # use mask to convert to -inf when t >= seq_len
-    T_range = torch.arange(T).unsqueeze(0)  # (1, T)
-    mask = T_range >= last_indices.unsqueeze(1)  # (N, T)
+    return new_state_responsibilities
 
-    new_state_responsibilities[mask.unsqueeze(-1).expand(-1, -1, S)] = float('-inf')
-    new_state_responsibilities = torch.softmax(new_state_responsibilities, dim=2)
-
-    new_state_responsibilities[mask.unsqueeze(-1).expand(-1, -1, S)] = 0.
-
-    # force align end
-    new_state_responsibilities[N_range, last_indices, S-1] = 1.
-
-    return new_state_responsibilities.log()
-    
 
 def _uniform_segmentation(seq_len: int, n_states: int) -> List[int]:
     assert(seq_len >= n_states)

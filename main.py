@@ -10,7 +10,7 @@ import json
 import os
 
 
-BEST = "cleanshaven-asiansmallclawedotter-40"
+BEST = "humane-noctule-37"
 model_path = f"./saved/{BEST}/{BEST}.pt"
 
 
