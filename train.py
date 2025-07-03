@@ -182,6 +182,9 @@ def forward_backward(model: HMM, observations: torch.Tensor,
     N, T, F = observations.size()
     S = state_responsibilities.size(2)
 
+    N_range = torch.arange(N)
+    last_indices = observation_lengths - 1 # (N,)
+
     # build lattice
     lattice = torch.zeros(N, T, S)
 
@@ -192,59 +195,48 @@ def forward_backward(model: HMM, observations: torch.Tensor,
     # get transitions
     transitions = model.transitions.unsqueeze(0) # (1, S, S)
 
-    # Fill Alpha Tensor (pre-emissions)
+    # Fill Alpha tensor
     alpha = torch.zeros(N, T, S)
-    alpha[:, 0, 0] = 0.
+
+    alpha[:, 0, 0] = lattice[:, 0, 0]
     alpha[:, 0, 1:] = float('-inf')
 
     for t in range(1, T):
-        # add last alpha, last emissions, and logsumexped transitions
-        alpha_t = alpha[:, t-1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
+        alpha_prev = alpha[:, t-1, :].unsqueeze(-1) # (N, S, 1)
+        alpha_t = torch.logsumexp(alpha_prev + transitions, dim=1) # (N, 1, S)
 
-        emissions_t = lattice[:, t-1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
+        emissions_t = lattice[:, t, :] # (N, 1, S)
 
-        alpha_t = alpha_t + emissions_t + transitions # (N, S, S)
+        alpha_t += emissions_t
 
-        alpha_t = torch.logsumexp(alpha_t, dim=1) # (N, 1, S)
         alpha[:, t, :] = alpha_t
 
-    # Fill Beta Tensor (post_emissions)
-    beta = torch.full_like(state_responsibilities, float('-inf')) # (N, T, S)
+    # Fill Beta tensor
+    beta = torch.zeros(N, T, S)
 
-    last_indices = observation_lengths - 1 # (N,)
-    N_range = torch.arange(N)
+    # set states for last index to negative inf.
+    beta[N_range, last_indices, :S-1] = float('-inf')
 
-    # set final state value from lattice
-    beta[N_range, last_indices, S-1] = lattice[N_range, last_indices, S-1]
-
-    # transpose transitions
-    transitions_back = transitions.transpose(1, 2) # (S, S)
+    transitions_back = transitions.transpose(1, 2)
 
     for t in reversed(range(T-1)):
         # mask over t > last_indices
         mask_t = (t < last_indices).to(beta.dtype).unsqueeze(-1) # (N, 1)
 
-        # get last beta and emissions
-        beta_t = beta[:, t+1, :].detach().clone().unsqueeze(-1) # (N, S, 1)
-        emissions_t = lattice[:, t, :].detach().clone().unsqueeze(1) # (N, 1, S)
+        beta_next = beta[:, t+1, :].unsqueeze(-1) # (N, S, 1)
 
-        # sum paths to beta_t
-        beta_t = beta_t + transitions_back + emissions_t
-        beta_t = torch.logsumexp(beta_t, dim=1) # (N, 1, S)
+        emissions_next = lattice[:, t+1, :].unsqueeze(1) # (N, 1, S)
 
-        # update where not masked
+        beta_t = torch.logsumexp(transitions_back + emissions_next + beta_next, dim=1) # (N, 1, S)
+
         beta[:, t, :] = torch.where(mask_t.bool(), beta_t, beta[:, t, :])
 
 
-    # initialize new log state responsibilities
     gamma = alpha + beta # (N, T, S)
-    log_likelihood = torch.amax(gamma, dim=(1, 2))
 
-    new_state_responsibilities = gamma - log_likelihood.unsqueeze(-1).unsqueeze(-1)
+    log_likelihood = torch.amax(gamma, dim=(1, 2)).unsqueeze(-1).unsqueeze(-1) # (N, 1, 1)
 
-    # force align beginning and end for good measure
-    new_state_responsibilities[:, 0, 0] = 0.
-    new_state_responsibilities[N_range, last_indices, S-1] = 0.
+    new_state_responsibilities = gamma - log_likelihood
 
     return new_state_responsibilities
 

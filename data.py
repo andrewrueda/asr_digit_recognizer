@@ -10,7 +10,6 @@ from collections import defaultdict
 from pathlib import Path
 import soundfile as sf
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.specaug.specaug import SpecAug
 from torch.nn.utils.rnn import pad_sequence
 
@@ -161,17 +160,6 @@ class FeatureExtractor:
                 fmin=fmin,
                 fmax=fmax,
             )
-
-        elif frontend_type == "fused":
-            self.frontend = FusedFrontends(
-                fs=fs,
-                n_fft=n_fft,
-                n_mels=n_mels,
-                hop_length=hop_length,
-                win_length=win_length,
-                fmin=fmin,
-                fmax=fmax,
-            )
         
         self.specaug = None
         if use_specaug:
@@ -231,11 +219,6 @@ class FeatureExtractor:
             tensors[target] = padded_shuffled
 
         return tensors
-    
-
-    def save_config(self, config_path: str):
-        # ToDO
-        pass
 
 
 if __name__ == "__main__":

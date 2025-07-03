@@ -10,7 +10,8 @@ import json
 import os
 
 
-BEST = "humane-noctule-37"
+BEST = "winsome-xenotarsosaurus-87"
+
 model_path = f"./saved/{BEST}/{BEST}.pt"
 
 
