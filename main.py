@@ -11,13 +11,12 @@ import os
 
 
 BEST = "winsome-xenotarsosaurus-87"
-
 model_path = f"./saved/{BEST}/{BEST}.pt"
 
 
 # Initialize
 
-title = "ASR Digit Recognizer"
+title = "Speech Digit Recognizer"
 
 st.markdown(
     f"""
@@ -38,7 +37,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown("HMM-GMM model for spoken digit recognition")
+st.markdown("HMM-GMM spoken digit recognition")
 
 if 'recognizer' not in st.session_state:
     st.session_state['recognizer'] = torch.load(model_path, weights_only=False)
