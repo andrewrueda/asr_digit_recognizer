@@ -6,20 +6,52 @@ This is an HMM-GMM model for spoken digit recognition implemented from scratch u
 There is also a simple Streamlit app included for demo-ing results of the model.
 
 ## Usage:
+`pip install -r requirements.txt`
+
 `streamlit run main.py`
 
 ## Datasets:
 
-1. **[Free Spoken Digit Dataset](https://github.com/Jakobovski/free-spoken-digit-dataset.git)**  
-   Source: GitHub
+1. **[Free Spoken Digit Dataset](https://github.com/Jakobovski/free-spoken-digit-dataset.git)**
+   - 3,000 recordings   
+   - Source: GitHub
 
-2. **[Free Spoken Digit Database](https://www.kaggle.com/datasets/subhajournal/free-spoken-digit-database)**  
-   Source: Kaggle
+3. **[Free Spoken Digit Database](https://www.kaggle.com/datasets/subhajournal/free-spoken-digit-database)**
+   - 17,000 recordings  
+   - Source: Kaggle
 
 ## Best Results:
 
-free-spoken-digit-dataset ():
-[table]
+**Free Spoken Digit Dataset:**
 
-kaggle-dataset ():
-[table]
+| Digit    | Accuracy |    
+|----------|----------|
+| zero     | 0.95     |
+| one      | 0.883    |
+| two      | 0.933    |
+| three    | 0.817    |
+| four     | 0.933    |
+| five     | 0.9      |
+| six      | 0.783    |
+| seven    | 0.933    |
+| eight    | 0.767    |
+| nine     | 0.717    |
+| total    | 0.862    |
+
+
+\
+**Free Spoken Digit Dataset:**
+
+| Digit    | Accuracy |    
+|----------|----------|
+| zero     | 0.823    |
+| one      | 0.713    |
+| two      | 0.558    |
+| three    | 0.676    |
+| four     | 0.714    |
+| five     | 0.466    |
+| six      | 0.774    |
+| seven    | 0.627    |
+| eight    | 0.731    |
+| nine     | 0.621    |
+| total    | 0.671    |
