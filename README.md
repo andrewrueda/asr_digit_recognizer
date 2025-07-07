@@ -3,7 +3,7 @@
 ## Overview
 This is an HMM-GMM model for spoken digit recognition implemented from scratch using PyTorch and ESPnet2. `train.py` is set up for altering training configurations in the commmand line, such as number of states per HMM, and number of mel filterbanks during feature extraction.
 
-There is also a simple Streamlit app included for demo-ing results of the model.
+Also included is a Streamlit app for demo-able inference on a trained model.
 
 ## Usage:
 `pip install -r requirements.txt`
