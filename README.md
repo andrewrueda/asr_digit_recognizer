@@ -40,7 +40,7 @@ Also included is a Streamlit app for demo-able inference on a trained model.
 
 
 \
-**Free Spoken Digit Dataset:**
+**Free Spoken Digit Database:**
 
 | Digit    | Accuracy |    
 |----------|----------|
