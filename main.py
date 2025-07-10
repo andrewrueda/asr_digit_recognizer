@@ -37,7 +37,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown("HMM-GMM spoken digit recognition")
+st.markdown("GMM-HMM spoken digit recognition")
 
 if 'recognizer' not in st.session_state:
     st.session_state['recognizer'] = torch.load(model_path, weights_only=False)
